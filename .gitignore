@@ -26,3 +26,8 @@ web-build/
 *.tsbuildinfo
 android/
 ios/
+
+# Tech debt cleanup 2026-06-01
+.expo/devices.json
+docs/CLEANUP_PROMPT*.md
+docs/PHASE_5.2*.md
