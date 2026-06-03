@@ -69,10 +69,9 @@ export function TripsScreen() {
   );
 
   function handleTripPress(trip: TripItem) {
-    if (trip.status !== 'active') return; // read-only detail deferred to Phase 5.6
-    // Cross-stack: switch Home tab and push MapScreen within its stack
+    // Cross-stack: switch Home tab and push TripDetail within its stack
     (navigation as any).navigate('Home', {
-      screen: 'MapScreen',
+      screen: 'TripDetail',
       params: { tripId: trip.id },
     });
   }
@@ -83,7 +82,7 @@ export function TripsScreen() {
       <TouchableOpacity
         style={styles.row}
         onPress={() => handleTripPress(item)}
-        activeOpacity={isActive ? 0.7 : 1}
+        activeOpacity={0.7}
       >
         <View style={styles.rowHeader}>
           <Text style={styles.tripName} numberOfLines={1}>{item.name}</Text>

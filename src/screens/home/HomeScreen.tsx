@@ -1,6 +1,6 @@
 // src/screens/home/HomeScreen.tsx
 import React, { useCallback, useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Location from 'expo-location';
@@ -145,6 +145,14 @@ export function HomeScreen() {
       <View style={styles.card}>
         {hasActive ? (
           <>
+            {activeTrips.length === 1 && (
+              <TouchableOpacity
+                style={styles.detailChevron}
+                onPress={() => navigation.navigate('TripDetail', { tripId: activeTrips[0].id })}
+              >
+                <Text style={styles.chevronText}>›</Text>
+              </TouchableOpacity>
+            )}
             <Text style={styles.cardTitle}>
               {activeTrips.length === 1
                 ? 'Trip in progress' // TODO(thai)
@@ -221,6 +229,16 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  detailChevron: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
+    padding: spacing.xs,
+  },
+  chevronText: {
+    fontSize: 24,
+    color: colors.textSecondary,
   },
   cardTitle: {
     ...typography.h3,

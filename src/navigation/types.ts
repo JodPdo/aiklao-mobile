@@ -9,6 +9,7 @@ export type AuthStackParamList = {
 export type HomeStackParamList = {
   HomeMain: undefined;
   MapScreen: { tripId: string };
+  TripDetail: { tripId: string };
 };
 
 export type AppTabParamList = {

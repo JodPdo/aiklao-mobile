@@ -8,6 +8,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Text } from 'react-native';
 import { HomeScreen } from '@/screens/home/HomeScreen';
 import { MapScreen } from '@/screens/map/MapScreen';
+import { TripDetailScreen } from '@/screens/trip/TripDetailScreen';
 import { TripsScreen } from '@/screens/trips/TripsScreen';
 import { SettingsScreen } from '@/screens/settings/SettingsScreen';
 import { colors } from '@/theme';
@@ -23,6 +24,11 @@ function HomeStackNavigator() {
         name="MapScreen"
         component={MapScreen}
         options={{ gestureEnabled: false }}
+      />
+      <HomeStack.Screen
+        name="TripDetail"
+        component={TripDetailScreen}
+        options={{ headerShown: false }}
       />
     </HomeStack.Navigator>
   );
