@@ -5,12 +5,12 @@ import { useAuth } from '@/auth/AuthContext';
 import { AuthNavigator } from './AuthNavigator';
 import { AppNavigator } from './AppNavigator';
 import { registerUnauthorizedHandler } from '@/api/client';
-import { colors } from '@/theme';
+import { useTheme } from '@/theme/ThemeProvider';
 
 export function RootNavigator() {
   const { status, signOut } = useAuth();
+  const { colors } = useTheme();
 
-  // Wire 401 handler → force logout if backend rejects token
   useEffect(() => {
     registerUnauthorizedHandler(() => {
       signOut();

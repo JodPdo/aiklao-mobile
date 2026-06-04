@@ -8,7 +8,9 @@ import { Linking, StyleSheet, Text, View } from 'react-native';
 import * as Location from 'expo-location';
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
-import { colors, spacing, typography } from '@/theme';
+import { useTheme } from '@/theme/ThemeProvider';
+import { spacing, typography } from '@/theme';
+import type { Palette } from '@/theme';
 
 type GateStatus = 'checking' | 'undetermined' | 'requesting' | 'granted' | 'denied';
 
@@ -17,9 +19,10 @@ interface LocationPermissionGateProps {
 }
 
 export function LocationPermissionGate({ children }: LocationPermissionGateProps) {
+  const { colors } = useTheme();
   const [gateStatus, setGateStatus] = useState<GateStatus>('checking');
+  const styles = makeStyles(colors);
 
-  // Read existing permission state on mount — does not show the OS prompt
   useEffect(() => {
     Location.getForegroundPermissionsAsync().then(({ status }) => {
       if (status === 'granted') {
@@ -27,7 +30,6 @@ export function LocationPermissionGate({ children }: LocationPermissionGateProps
       } else if (status === 'undetermined') {
         setGateStatus('undetermined');
       } else {
-        // 'denied' or iOS 'restricted'
         setGateStatus('denied');
       }
     });
@@ -44,7 +46,6 @@ export function LocationPermissionGate({ children }: LocationPermissionGateProps
   }
 
   if (gateStatus === 'checking') {
-    // Blank while reading stored permission — avoids flicker
     return <Screen padded><View style={styles.center} /></Screen>;
   }
 
@@ -53,15 +54,13 @@ export function LocationPermissionGate({ children }: LocationPermissionGateProps
       <Screen padded>
         <View style={styles.center}>
           <Text style={styles.emoji}>📍</Text>
-          <Text style={styles.title}>
-            Location Required{/* TODO(thai): translate after agent finishes */}
-          </Text>
+          <Text style={styles.title}>Location Required{/* TODO(thai) */}</Text>
           <Text style={styles.body}>
             AiKlao uses your location to track trips in real time while the app is open.
-            {/* TODO(thai): translate after agent finishes */}
+            {/* TODO(thai) */}
           </Text>
           <Button
-            label="Allow Location" // TODO(thai): translate after agent finishes
+            label="Allow Location" // TODO(thai)
             onPress={requestPermission}
             loading={gateStatus === 'requesting'}
             fullWidth
@@ -72,26 +71,23 @@ export function LocationPermissionGate({ children }: LocationPermissionGateProps
     );
   }
 
-  // denied or restricted
   return (
     <Screen padded>
       <View style={styles.center}>
         <Text style={styles.emoji}>🚫</Text>
-        <Text style={styles.title}>
-          Location Permission Denied{/* TODO(thai): translate after agent finishes */}
-        </Text>
+        <Text style={styles.title}>Location Permission Denied{/* TODO(thai) */}</Text>
         <Text style={styles.body}>
           Please enable location access in Settings to use AiKlao trip tracking.
-          {/* TODO(thai): translate after agent finishes */}
+          {/* TODO(thai) */}
         </Text>
         <Button
-          label="Open Settings" // TODO(thai): translate after agent finishes
+          label="Open Settings" // TODO(thai)
           onPress={() => Linking.openSettings()}
           fullWidth
           style={{ marginTop: spacing.xl }}
         />
         <Button
-          label="Try Again" // TODO(thai): translate after agent finishes
+          label="Try Again" // TODO(thai)
           variant="ghost"
           onPress={requestPermission}
           fullWidth
@@ -102,28 +98,26 @@ export function LocationPermissionGate({ children }: LocationPermissionGateProps
   );
 }
 
-const styles = StyleSheet.create({
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-  },
-  emoji: {
-    fontSize: 64,
-    marginBottom: spacing.lg,
-    textAlign: 'center',
-  },
-  title: {
-    ...typography.h2,
-    color: colors.textPrimary,
-    textAlign: 'center',
-    marginBottom: spacing.md,
-  },
-  body: {
-    ...typography.body,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-});
+function makeStyles(c: Palette) {
+  return StyleSheet.create({
+    center: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: spacing.lg,
+    },
+    emoji: { fontSize: 64, marginBottom: spacing.lg, textAlign: 'center' },
+    title: {
+      ...typography.h2,
+      color: c.textPrimary,
+      textAlign: 'center',
+      marginBottom: spacing.md,
+    },
+    body: {
+      ...typography.body,
+      color: c.textSecondary,
+      textAlign: 'center',
+      lineHeight: 22,
+    },
+  });
+}

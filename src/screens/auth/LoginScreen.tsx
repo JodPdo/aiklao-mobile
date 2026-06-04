@@ -3,11 +3,15 @@ import { Alert, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
 import { useAuth } from '@/auth/AuthContext';
-import { colors, spacing, typography } from '@/theme';
+import { useTheme } from '@/theme/ThemeProvider';
+import { spacing, typography } from '@/theme';
+import type { Palette } from '@/theme';
 
 export function LoginScreen() {
   const { signInWithLine } = useAuth();
+  const { colors } = useTheme();
   const [loading, setLoading] = useState(false);
+  const styles = makeStyles(colors);
 
   const handleLogin = async () => {
     setLoading(true);
@@ -46,29 +50,31 @@ export function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  hero: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  title: {
-    ...typography.h1,
-    color: colors.primary,
-    marginBottom: spacing.sm,
-  },
-  subtitle: {
-    ...typography.body,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-  actions: {
-    paddingBottom: spacing.xl,
-  },
-  note: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: spacing.md,
-  },
-});
+function makeStyles(c: Palette) {
+  return StyleSheet.create({
+    hero: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    title: {
+      ...typography.h1,
+      color: c.primary,
+      marginBottom: spacing.sm,
+    },
+    subtitle: {
+      ...typography.body,
+      color: c.textSecondary,
+      textAlign: 'center',
+    },
+    actions: {
+      paddingBottom: spacing.xl,
+    },
+    note: {
+      ...typography.caption,
+      color: c.textSecondary,
+      textAlign: 'center',
+      marginTop: spacing.md,
+    },
+  });
+}

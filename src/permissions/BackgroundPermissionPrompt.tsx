@@ -7,7 +7,9 @@ import React, { useState } from 'react';
 import { Linking, StyleSheet, Text, View } from 'react-native';
 import * as Location from 'expo-location';
 import { Button } from '@/components/Button';
-import { colors, radius, spacing, typography } from '@/theme';
+import { useTheme } from '@/theme/ThemeProvider';
+import { radius, spacing, typography } from '@/theme';
+import type { Palette } from '@/theme';
 
 interface BackgroundPermissionPromptProps {
   status: 'undetermined' | 'denied';
@@ -18,7 +20,9 @@ export function BackgroundPermissionPrompt({
   status,
   onGranted,
 }: BackgroundPermissionPromptProps) {
+  const { colors } = useTheme();
   const [isRequesting, setIsRequesting] = useState(false);
+  const styles = makeStyles(colors);
 
   async function handleGrant() {
     setIsRequesting(true);
@@ -36,12 +40,8 @@ export function BackgroundPermissionPrompt({
     <View style={styles.banner}>
       <Text style={styles.icon}>🟡</Text>
       <View style={styles.textBlock}>
-        <Text style={styles.title}>
-          Background tracking off{/* TODO(thai) */}
-        </Text>
-        <Text style={styles.body}>
-          Locations pause when app is in background.{/* TODO(thai) */}
-        </Text>
+        <Text style={styles.title}>Background tracking off{/* TODO(thai) */}</Text>
+        <Text style={styles.body}>Locations pause when app is in background.{/* TODO(thai) */}</Text>
       </View>
       <View style={styles.actions}>
         {status === 'undetermined' ? (
@@ -64,35 +64,23 @@ export function BackgroundPermissionPrompt({
   );
 }
 
-const styles = StyleSheet.create({
-  banner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.warning,
-    padding: spacing.md,
-    marginTop: spacing.lg,
-    gap: spacing.sm,
-  },
-  icon: {
-    fontSize: 20,
-  },
-  textBlock: {
-    flex: 1,
-  },
-  title: {
-    ...typography.body,
-    color: colors.textPrimary,
-    fontWeight: '600',
-  },
-  body: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  actions: {
-    marginLeft: spacing.sm,
-  },
-});
+function makeStyles(c: Palette) {
+  return StyleSheet.create({
+    banner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: c.surface,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: c.warning,
+      padding: spacing.md,
+      marginTop: spacing.lg,
+      gap: spacing.sm,
+    },
+    icon: { fontSize: 20 },
+    textBlock: { flex: 1 },
+    title: { ...typography.body, color: c.textPrimary, fontWeight: '600' },
+    body: { ...typography.caption, color: c.textSecondary, marginTop: 2 },
+    actions: { marginLeft: spacing.sm },
+  });
+}

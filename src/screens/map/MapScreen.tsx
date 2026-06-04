@@ -15,7 +15,9 @@ import { LocationPermissionGate } from '@/permissions/LocationPermissionGate';
 import { Button } from '@/components/Button';
 import { api } from '@/api/client';
 import { stopBackgroundTracking } from '@/services/locationTask';
-import { colors, spacing, typography } from '@/theme';
+import { useTheme } from '@/theme/ThemeProvider';
+import { spacing, typography } from '@/theme';
+import type { Palette } from '@/theme';
 import type { HomeStackParamList } from '@/navigation/types';
 
 type MapScreenProps = {
@@ -27,8 +29,10 @@ type MapNavProp = NativeStackNavigationProp<HomeStackParamList, 'MapScreen'>;
 export function MapScreen({ route }: MapScreenProps) {
   const { tripId } = route.params;
   const navigation = useNavigation<MapNavProp>();
+  const { colors } = useTheme();
   const [isStopping, setIsStopping] = useState(false);
   const [bgGranted, setBgGranted] = useState<boolean | null>(null);
+  const styles = makeStyles(colors);
 
   // Check background permission for the tracking status indicator
   useEffect(() => {
@@ -105,48 +109,50 @@ export function MapScreen({ route }: MapScreenProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  placeholder: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: spacing.xl,
-    paddingBottom: 100, // keep content above the floating Stop area
-  },
-  emoji: {
-    fontSize: 64,
-    marginBottom: spacing.lg,
-  },
-  title: {
-    ...typography.h3,
-    color: colors.textPrimary,
-    textAlign: 'center',
-    marginBottom: spacing.md,
-  },
-  body: {
-    ...typography.body,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  stopWrapper: {
-    position: 'absolute',
-    bottom: spacing['2xl'],
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  tripLabel: {
-    ...typography.caption,
-    color: colors.textSecondary,
-  },
-  trackingLabel: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
-  },
-});
+function makeStyles(c: Palette) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: c.background,
+    },
+    placeholder: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: spacing.xl,
+      paddingBottom: 100, // keep content above the floating Stop area
+    },
+    emoji: {
+      fontSize: 64,
+      marginBottom: spacing.lg,
+    },
+    title: {
+      ...typography.h3,
+      color: c.textPrimary,
+      textAlign: 'center',
+      marginBottom: spacing.md,
+    },
+    body: {
+      ...typography.body,
+      color: c.textSecondary,
+      textAlign: 'center',
+      lineHeight: 22,
+    },
+    stopWrapper: {
+      position: 'absolute',
+      bottom: spacing['2xl'],
+      left: 0,
+      right: 0,
+      alignItems: 'center',
+    },
+    tripLabel: {
+      ...typography.caption,
+      color: c.textSecondary,
+    },
+    trackingLabel: {
+      ...typography.caption,
+      color: c.textSecondary,
+      marginTop: spacing.xs,
+    },
+  });
+}

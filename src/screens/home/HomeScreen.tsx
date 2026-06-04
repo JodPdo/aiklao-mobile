@@ -14,7 +14,9 @@ import {
   getActiveTripId,
 } from '@/services/locationTask';
 import { BackgroundPermissionPrompt } from '@/permissions/BackgroundPermissionPrompt';
-import { colors, radius, spacing, typography } from '@/theme';
+import { useTheme } from '@/theme/ThemeProvider';
+import { radius, spacing, typography } from '@/theme';
+import type { Palette } from '@/theme';
 import type { HomeStackParamList } from '@/navigation/types';
 
 type HomeNavProp = NativeStackNavigationProp<HomeStackParamList, 'HomeMain'>;
@@ -30,24 +32,23 @@ type BgPermStatus = 'checking' | 'granted' | 'denied' | 'undetermined';
 export function HomeScreen() {
   const { user } = useAuth();
   const navigation = useNavigation<HomeNavProp>();
+  const { colors } = useTheme();
   const [isStarting, setIsStarting] = useState(false);
   const [activeTrips, setActiveTrips] = useState<TripSummary[]>([]);
   const [bgPermStatus, setBgPermStatus] = useState<BgPermStatus>('checking');
+  const styles = makeStyles(colors);
 
   useFocusEffect(
     useCallback(() => {
       let mounted = true;
 
       async function loadActive() {
-        // 1. Fetch active trips from backend
         try {
           const res = await api.get<{ trips: TripSummary[] }>('/api/mobile/trips');
           if (mounted) {
             const trips = res.data.trips.filter(t => t.status === 'active');
             setActiveTrips(trips);
 
-            // Stale AsyncStorage cleanup: if background task thinks a trip is active
-            // but backend disagrees, the task and storage are out of sync — clean up.
             const storedId = await getActiveTripId();
             if (storedId && !trips.find(t => t.id === storedId)) {
               await stopBackgroundTracking();
@@ -55,11 +56,8 @@ export function HomeScreen() {
           }
         } catch (err: any) {
           if (err?.response?.status === 401) return;
-          // silent — Start New Trip still works if list fails to load
         }
 
-        // 2. Check background permission for the nudge banner
-        // Only meaningful once foreground is already granted.
         if (!mounted) return;
         try {
           const { status: fg } = await Location.getForegroundPermissionsAsync();
@@ -72,8 +70,6 @@ export function HomeScreen() {
               );
             }
           } else {
-            // Foreground not yet granted — LocationPermissionGate handles it on MapScreen.
-            // Don't show the background nudge yet.
             if (mounted) setBgPermStatus('checking');
           }
         } catch {
@@ -95,13 +91,9 @@ export function HomeScreen() {
       }>('/api/mobile/trips/start', {});
       const tripId = response.data.trip.id;
 
-      // Start background tracking. AsyncStorage is written inside startBackgroundTracking
-      // before startLocationUpdatesAsync is called, so the trip ID is always persisted
-      // even if the task fails to start (e.g. background permission denied on Android 10+).
       try {
         await startBackgroundTracking(tripId);
       } catch (bgErr: any) {
-        // Soft fail — foreground tracking still shows notification; MapScreen shows 🟡.
         console.log('[home] bg tracking start failed (foreground-only):', bgErr?.message ?? bgErr);
       }
 
@@ -121,7 +113,6 @@ export function HomeScreen() {
     if (activeTrips.length === 1) {
       navigation.navigate('MapScreen', { tripId: activeTrips[0].id });
     } else {
-      // Multiple active trips — switch to Trips tab so user can pick one
       (navigation.getParent() as any)?.navigate('Trips');
     }
   }
@@ -183,9 +174,7 @@ export function HomeScreen() {
           </>
         ) : (
           <>
-            <Text style={styles.cardTitle}>
-              No active trip{/* TODO(thai) */}
-            </Text>
+            <Text style={styles.cardTitle}>No active trip{/* TODO(thai) */}</Text>
             <Text style={styles.cardBody}>
               Tap &quot;Start New Trip&quot; to begin tracking your location.
               {/* TODO(thai) */}
@@ -212,41 +201,43 @@ export function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  greeting: {
-    ...typography.h2,
-    color: colors.textPrimary,
-  },
-  subtitle: {
-    ...typography.body,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
-    marginBottom: spacing.xl,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  detailChevron: {
-    position: 'absolute',
-    top: spacing.sm,
-    right: spacing.sm,
-    padding: spacing.xs,
-  },
-  chevronText: {
-    fontSize: 24,
-    color: colors.textSecondary,
-  },
-  cardTitle: {
-    ...typography.h3,
-    color: colors.textPrimary,
-  },
-  cardBody: {
-    ...typography.body,
-    color: colors.textSecondary,
-    marginTop: spacing.sm,
-  },
-});
+function makeStyles(c: Palette) {
+  return StyleSheet.create({
+    greeting: {
+      ...typography.h2,
+      color: c.textPrimary,
+    },
+    subtitle: {
+      ...typography.body,
+      color: c.textSecondary,
+      marginTop: spacing.xs,
+      marginBottom: spacing.xl,
+    },
+    card: {
+      backgroundColor: c.surface,
+      borderRadius: radius.lg,
+      padding: spacing.lg,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    detailChevron: {
+      position: 'absolute',
+      top: spacing.sm,
+      right: spacing.sm,
+      padding: spacing.xs,
+    },
+    chevronText: {
+      fontSize: 24,
+      color: c.textSecondary,
+    },
+    cardTitle: {
+      ...typography.h3,
+      color: c.textPrimary,
+    },
+    cardBody: {
+      ...typography.body,
+      color: c.textSecondary,
+      marginTop: spacing.sm,
+    },
+  });
+}

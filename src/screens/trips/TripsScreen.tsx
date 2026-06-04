@@ -15,7 +15,9 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
 import { api } from '@/api/client';
-import { colors, radius, spacing, typography } from '@/theme';
+import { useTheme } from '@/theme/ThemeProvider';
+import { radius, spacing, typography } from '@/theme';
+import type { Palette } from '@/theme';
 
 interface TripItem {
   id: string;
@@ -28,23 +30,38 @@ interface TripItem {
   isLeader: boolean;
 }
 
+// StatusBadge calls useTheme() directly — Option B (sub-component owns its theme)
 function StatusBadge({ status }: { status: string }) {
+  const { colors } = useTheme();
   const active = status === 'active';
   return (
-    <View style={[styles.badge, active ? styles.badgeActive : styles.badgeArchived]}>
-      <Text style={[styles.badgeLabel, active ? styles.badgeLabelActive : styles.badgeLabelArchived]}>
+    <View style={[
+      staticBadgeStyles.badge,
+      { backgroundColor: active ? colors.primary + '22' : colors.border },
+    ]}>
+      <Text style={[
+        staticBadgeStyles.label,
+        { color: active ? colors.primary : colors.textSecondary },
+      ]}>
         {active ? 'Active' : 'Archived'}{/* TODO(thai) */}
       </Text>
     </View>
   );
 }
 
+const staticBadgeStyles = StyleSheet.create({
+  badge: { paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: radius.sm },
+  label: { ...typography.caption, fontWeight: '600' },
+});
+
 export function TripsScreen() {
   const navigation = useNavigation();
+  const { colors } = useTheme();
   const [trips, setTrips] = useState<TripItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const styles = makeStyles(colors);
 
   const fetchTrips = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -77,7 +94,6 @@ export function TripsScreen() {
   }
 
   function renderItem({ item }: { item: TripItem }) {
-    const isActive = item.status === 'active';
     return (
       <TouchableOpacity
         style={styles.row}
@@ -164,104 +180,59 @@ export function TripsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  title: {
-    ...typography.h2,
-    color: colors.textPrimary,
-    marginBottom: spacing.md,
-  },
-  list: {
-    flex: 1,
-  },
-  listContent: {
-    paddingBottom: spacing.xl,
-  },
-  emptyContent: {
-    flex: 1,
-  },
-  emptyInner: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: spacing.xl,
-  },
-  emptyTitle: {
-    ...typography.h3,
-    color: colors.textPrimary,
-    textAlign: 'center',
-  },
-  emptyBody: {
-    ...typography.body,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: spacing.sm,
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorText: {
-    ...typography.body,
-    color: colors.danger,
-    textAlign: 'center',
-  },
-  row: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  rowHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.xs,
-  },
-  tripName: {
-    ...typography.body,
-    color: colors.textPrimary,
-    fontWeight: '600',
-    flex: 1,
-    marginRight: spacing.sm,
-  },
-  rowMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  metaText: {
-    ...typography.caption,
-    color: colors.textSecondary,
-  },
-  metaDot: {
-    ...typography.caption,
-    color: colors.textSecondary,
-  },
-  leaderText: {
-    ...typography.caption,
-    color: colors.primary,
-  },
-  badge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: radius.sm,
-  },
-  badgeActive: {
-    backgroundColor: colors.primary + '22',
-  },
-  badgeArchived: {
-    backgroundColor: colors.border,
-  },
-  badgeLabel: {
-    ...typography.caption,
-    fontWeight: '600',
-  },
-  badgeLabelActive: {
-    color: colors.primary,
-  },
-  badgeLabelArchived: {
-    color: colors.textSecondary,
-  },
-});
+function makeStyles(c: Palette) {
+  return StyleSheet.create({
+    title: {
+      ...typography.h2,
+      color: c.textPrimary,
+      marginBottom: spacing.md,
+    },
+    list: { flex: 1 },
+    listContent: { paddingBottom: spacing.xl },
+    emptyContent: { flex: 1 },
+    emptyInner: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: spacing.xl,
+    },
+    emptyTitle: {
+      ...typography.h3,
+      color: c.textPrimary,
+      textAlign: 'center',
+    },
+    emptyBody: {
+      ...typography.body,
+      color: c.textSecondary,
+      textAlign: 'center',
+      marginTop: spacing.sm,
+    },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    errorText: { ...typography.body, color: c.danger, textAlign: 'center' },
+    row: {
+      backgroundColor: c.surface,
+      borderRadius: radius.lg,
+      padding: spacing.md,
+      marginBottom: spacing.sm,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    rowHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: spacing.xs,
+    },
+    tripName: {
+      ...typography.body,
+      color: c.textPrimary,
+      fontWeight: '600',
+      flex: 1,
+      marginRight: spacing.sm,
+    },
+    rowMeta: { flexDirection: 'row', alignItems: 'center' },
+    metaText: { ...typography.caption, color: c.textSecondary },
+    metaDot:  { ...typography.caption, color: c.textSecondary },
+    leaderText: { ...typography.caption, color: c.primary },
+  });
+}

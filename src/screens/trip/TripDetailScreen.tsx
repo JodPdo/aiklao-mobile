@@ -29,7 +29,9 @@ import {
   restartBackgroundTracking,
 } from '@/services/locationTask';
 import { usePowerSaveMode } from '@/hooks/usePowerSaveMode';
-import { colors, radius, spacing, typography } from '@/theme';
+import { useTheme } from '@/theme/ThemeProvider';
+import { radius, spacing, typography } from '@/theme';
+import type { Palette } from '@/theme';
 import type { HomeStackParamList } from '@/navigation/types';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
@@ -134,6 +136,7 @@ function getBatteryColor(percent: number): string {
 // ─── Avatar ────────────────────────────────────────────────────────────────────
 
 function Avatar({ member, size = 52 }: { member: Member; size?: number }) {
+  const { colors } = useTheme();  // Option B — sub-component owns its theme
   const [imgFailed, setImgFailed] = useState(false);
   const showFallback = !member.pictureUrl || imgFailed;
   const bg = avatarColor(member.lineUserId);
@@ -143,16 +146,18 @@ function Avatar({ member, size = 52 }: { member: Member; size?: number }) {
     Date.now() - new Date(member.lastLocation.createdAt).getTime() <= OFFLINE_THRESHOLD_MS;
 
   const avatarStyle = [
-    styles.avatar,
+    avatarStaticStyles.base,
     { width: size, height: size, borderRadius: size / 2 },
-    member.isLeader && styles.avatarLeaderRing,
+    member.isLeader && { borderWidth: 2.5, borderColor: colors.warning },
   ] as const;
 
   return (
-    <View style={styles.avatarWrapper}>
+    <View style={avatarStaticStyles.wrapper}>
       {showFallback ? (
         <View style={[...avatarStyle, { backgroundColor: bg }]}>
-          <Text style={[styles.avatarChar, size < 52 && { fontSize: 14 }]}>{char}</Text>
+          <Text style={[avatarStaticStyles.char, { color: colors.textInverse }, size < 52 && { fontSize: 14 }]}>
+            {char}
+          </Text>
         </View>
       ) : (
         <Image
@@ -161,10 +166,27 @@ function Avatar({ member, size = 52 }: { member: Member; size?: number }) {
           onError={() => setImgFailed(true)}
         />
       )}
-      {!member.isLeader && isOnline && <View style={styles.liveDot} />}
+      {!member.isLeader && isOnline && (
+        <View style={[avatarStaticStyles.liveDot, { backgroundColor: colors.live, borderColor: colors.backgroundAlt }]} />
+      )}
     </View>
   );
 }
+
+const avatarStaticStyles = StyleSheet.create({
+  wrapper: { position: 'relative' },
+  base: { alignItems: 'center', justifyContent: 'center' },
+  char: { ...typography.h3 },
+  liveDot: {
+    position: 'absolute',
+    bottom: 1,
+    right: 1,
+    width: 13,
+    height: 13,
+    borderRadius: radius.pill,
+    borderWidth: 2,
+  },
+});
 
 // ─── AppBar ────────────────────────────────────────────────────────────────────
 
@@ -179,28 +201,75 @@ function TripDetailAppBar({
   powerSave: boolean;
   onToggleMode: () => void;
 }) {
+  const { colors } = useTheme();  // Option B — sub-component owns its theme
   return (
-    <View style={styles.appBar}>
+    <View style={[appBarStaticStyles.bar, { backgroundColor: colors.primary }]}>
       <TouchableOpacity
-        style={styles.backBtn}
+        style={appBarStaticStyles.backBtn}
         onPress={onBack}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        <Text style={styles.backBtnText}>‹</Text>
+        <Text style={[appBarStaticStyles.backBtnText, { color: colors.textInverse }]}>‹</Text>
       </TouchableOpacity>
-      <Text style={styles.appBarTitle} numberOfLines={1}>{title}</Text>
+      <Text style={[appBarStaticStyles.title, { color: colors.textInverse }]} numberOfLines={1}>
+        {title}
+      </Text>
       <TouchableOpacity
-        style={[styles.modeToggle, powerSave ? styles.modeToggleSaver : styles.modeToggleDefault]}
+        style={[
+          appBarStaticStyles.modeToggle,
+          powerSave ? appBarStaticStyles.modeToggleSaver : appBarStaticStyles.modeToggleDefault,
+        ]}
         onPress={onToggleMode}
         hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
       >
-        <Text style={[styles.modeToggleText, powerSave ? styles.modeToggleTextSaver : styles.modeToggleTextDefault]}>
+        <Text style={[
+          appBarStaticStyles.modeToggleText,
+          powerSave ? appBarStaticStyles.modeToggleTextSaver : appBarStaticStyles.modeToggleTextDefault,
+        ]}>
           ⚡ {powerSave ? 'ประหยัด' : 'ปกติ'}
         </Text>
       </TouchableOpacity>
     </View>
   );
 }
+
+const appBarStaticStyles = StyleSheet.create({
+  bar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    gap: spacing.sm,
+  },
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.md,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backBtnText: {
+    fontSize: 24,
+    lineHeight: 28,
+    fontWeight: '500',
+  },
+  title: {
+    ...typography.body,
+    fontWeight: '700',
+    flex: 1,
+  },
+  modeToggle: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+  },
+  modeToggleDefault:     { backgroundColor: '#E1F5EE' },
+  modeToggleSaver:       { backgroundColor: '#FAEEDA' },
+  modeToggleText:        { fontSize: 11, fontWeight: '500' },
+  modeToggleTextDefault: { color: '#0F6E56' },
+  modeToggleTextSaver:   { color: '#854F0B' },
+});
 
 // ─── TripDetailScreen ──────────────────────────────────────────────────────────
 
@@ -211,7 +280,7 @@ export function TripDetailScreen() {
   const insets = useSafeAreaInsets();
   const { tripId } = route.params;
 
-  // 6b — power-save hook
+  const { colors } = useTheme();
   const { powerSave, batteryLevel, togglePowerSave } = usePowerSaveMode();
 
   const [data, setData] = useState<TripData | null>(null);
@@ -256,12 +325,15 @@ export function TripDetailScreen() {
     .at(-1);
   const lastUpdated = latestTs != null ? formatRelativeTime(latestTs) : null;
 
-  // 6c — auto-refresh every 60s in default mode; cleared when power-save flips on or trip archived
+  // Auto-refresh every 60s in default mode; stopped when power-save or archived
   useEffect(() => {
     if (powerSave || isArchived) return;
     const id = setInterval(() => { load(); }, 60_000);
     return () => clearInterval(id);
   }, [powerSave, isArchived, load]);
+
+  // Build styles from current palette
+  const styles = makeStyles(colors);
 
   async function onRefresh() {
     setRefreshing(true);
@@ -270,7 +342,6 @@ export function TripDetailScreen() {
     setRefreshing(false);
   }
 
-  // 6b — toggle handler: flip mode + restart bg task with new interval
   async function handleToggleMode() {
     await togglePowerSave();
     if (isSharing) {
@@ -379,14 +450,13 @@ export function TripDetailScreen() {
     );
   }
 
-  // Text color helpers — inline for conditional saver-mode overrides
-  const textOnHero: TextStyle = { color: powerSave ? colors.textPrimary : colors.textInverse };
+  // Inline text-color helpers for hero card conditional styling
+  const textOnHero: TextStyle     = { color: powerSave ? colors.textPrimary : colors.textInverse };
   const textOnHeroMuted: TextStyle = { color: powerSave ? colors.textSecondary : 'rgba(255,255,255,0.75)' };
-  const textOnHeroSoft: TextStyle = { color: powerSave ? colors.textSecondary : 'rgba(255,255,255,0.9)' };
+  const textOnHeroSoft: TextStyle  = { color: powerSave ? colors.textSecondary : 'rgba(255,255,255,0.9)' };
 
   return (
     <Screen padded={false} style={styles.flex}>
-      {/* 6d — AppBar with mode toggle */}
       <TripDetailAppBar
         title={data.trip.name}
         onBack={() => navigation.goBack()}
@@ -407,7 +477,7 @@ export function TripDetailScreen() {
           />
         }
       >
-        {/* 6e — Hero card: green in default, gray in saver */}
+        {/* Hero card */}
         <View style={[styles.heroCard, powerSave && styles.heroCardSaver]}>
           <Text style={[styles.heroDate, textOnHeroMuted]}>{formatDate(data.trip.createdAt)}</Text>
           {data.trip.destination != null && (
@@ -451,7 +521,7 @@ export function TripDetailScreen() {
           )}
         </View>
 
-        {/* 6f — Mini-map: default mode only, replaces old static mapBox */}
+        {/* Mini-map: default mode only */}
         {!powerSave && (
           <MiniMapPlaceholder
             members={data.members.map(m => ({
@@ -464,7 +534,7 @@ export function TripDetailScreen() {
           />
         )}
 
-        {/* CTA banner — empty state, default mode only */}
+        {/* CTA banner — empty + default mode only */}
         {isEmpty && !powerSave && (
           <View style={styles.ctaBanner}>
             <Text style={styles.ctaBannerText}>
@@ -473,7 +543,7 @@ export function TripDetailScreen() {
           </View>
         )}
 
-        {/* 6g — Update bar: mode-aware message */}
+        {/* Update bar — mode-aware message */}
         {(powerSave || (!isEmpty && lastUpdated != null)) && (
           <View style={[styles.lastUpdatedBar, powerSave && styles.lastUpdatedBarSaver]}>
             {!powerSave && <View style={styles.liveDotInline} />}
@@ -485,7 +555,7 @@ export function TripDetailScreen() {
           </View>
         )}
 
-        {/* 6h — Members section */}
+        {/* Members section */}
         <Text style={styles.sectionTitle}>สมาชิก ({data.members.length})</Text>
 
         {powerSave ? (
@@ -531,9 +601,7 @@ export function TripDetailScreen() {
                       </View>
                     )}
                     <View style={styles.statPill}>
-                      <Text style={styles.statPillText}>
-                        {memberStatusLabel(m)}
-                      </Text>
+                      <Text style={styles.statPillText}>{memberStatusLabel(m)}</Text>
                     </View>
                   </View>
                 </View>
@@ -541,7 +609,7 @@ export function TripDetailScreen() {
             })}
           </View>
         ) : (
-          // 6i — Default mode: horizontal compact scroll with LivePulseDot for recent members
+          // Default mode: horizontal compact scroll with LivePulseDot for recent members
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -552,7 +620,7 @@ export function TripDetailScreen() {
                 <View style={styles.memberAvatarWrap}>
                   <Avatar member={member} />
                   {member.lastLocation && isRecent(member.lastLocation.createdAt) && (
-                    <LivePulseDot color="#10B981" size={5} style={styles.memberLivePulse} />
+                    <LivePulseDot color={colors.live} size={5} style={styles.memberLivePulse} />
                   )}
                 </View>
                 <Text style={styles.memberName} numberOfLines={1}>{member.displayName}</Text>
@@ -572,7 +640,7 @@ export function TripDetailScreen() {
         <View style={{ height: spacing.xl }} />
       </ScrollView>
 
-      {/* Sticky action buttons — Q9: both hidden for archived (unchanged from Session C) */}
+      {/* Sticky action buttons — Q9: hidden for archived */}
       {!isArchived && (
         <View style={[styles.actionBar, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
           {isEmpty ? (
@@ -596,338 +664,251 @@ export function TripDetailScreen() {
   );
 }
 
-// ─── Styles ────────────────────────────────────────────────────────────────────
+// ─── Theme-aware styles factory ────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-    backgroundColor: colors.backgroundAlt,
-  },
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.xl,
-  },
+function makeStyles(c: Palette) {
+  return StyleSheet.create({
+    flex: {
+      flex: 1,
+      backgroundColor: c.backgroundAlt,
+    },
+    centered: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: spacing.xl,
+    },
 
-  // AppBar
-  appBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    gap: spacing.sm,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.md,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backBtnText: {
-    color: colors.textInverse,
-    fontSize: 24,
-    lineHeight: 28,
-    fontWeight: '500',
-  },
-  appBarTitle: {
-    ...typography.body,
-    color: colors.textInverse,
-    fontWeight: '700',
-    flex: 1,
-  },
-  // Mode toggle pill in AppBar
-  modeToggle: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 14,
-  },
-  modeToggleDefault: {
-    backgroundColor: '#E1F5EE',
-  },
-  modeToggleSaver: {
-    backgroundColor: '#FAEEDA',
-  },
-  modeToggleText: {
-    fontSize: 11,
-    fontWeight: '500',
-  },
-  modeToggleTextDefault: {
-    color: '#0F6E56',
-  },
-  modeToggleTextSaver: {
-    color: '#854F0B',
-  },
+    // ScrollView
+    scroll: { flex: 1 },
+    scrollContent: {
+      paddingTop: spacing.md,
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.lg,
+    },
 
-  // ScrollView
-  scroll: { flex: 1 },
-  scrollContent: {
-    paddingTop: spacing.md,
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
-  },
+    // Hero card
+    heroCard: {
+      backgroundColor: c.primary,
+      borderRadius: radius.lg,
+      padding: spacing.lg,
+      marginBottom: spacing.md,
+    },
+    heroCardSaver: {
+      backgroundColor: c.backgroundAlt,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    heroDate: {
+      ...typography.caption,
+      marginBottom: spacing.xs,
+    },
+    heroDestination: {
+      ...typography.bodySmall,
+      marginBottom: spacing.md,
+    },
+    heroStats: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: spacing.md,
+      gap: spacing.lg,
+    },
+    heroStat: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      gap: spacing.xs,
+    },
+    heroStatValue: { ...typography.h2 },
+    heroStatUnit:  { ...typography.body },
+    heroStatDivider: {
+      width: 1,
+      height: 24,
+      backgroundColor: 'rgba(255,255,255,0.3)',
+    },
+    heroStatDividerSaver: {
+      backgroundColor: c.border,
+    },
+    badge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs,
+      borderRadius: radius.pill,
+      gap: spacing.xs,
+      backgroundColor: 'rgba(255,255,255,0.15)',
+    },
+    badgeActive:        { backgroundColor: 'rgba(52,211,153,0.25)' },
+    badgeWaiting:       { backgroundColor: 'rgba(232,155,35,0.25)' },
+    badgeArchived:      { backgroundColor: 'rgba(255,255,255,0.12)' },
+    badgeActiveSaver:   { backgroundColor: '#E1F5EE' },
+    badgeWaitingSaver:  { backgroundColor: '#FEF3C7' },
+    badgeArchivedSaver: { backgroundColor: c.gray200 },
+    badgeText: {
+      ...typography.caption,
+      color: c.textInverse,
+      fontWeight: '600',
+    },
+    badgeTextMuted:     { color: 'rgba(255,255,255,0.65)' },
+    badgeTextSaver:     { color: c.textPrimary },
+    badgeTextSaverMuted:{ color: c.textSecondary },
+    pulseDot: {
+      width: 7,
+      height: 7,
+      borderRadius: radius.pill,
+      backgroundColor: '#34D399',
+    },
 
-  // Hero card
-  heroCard: {
-    backgroundColor: colors.primary,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-  },
-  heroCardSaver: {
-    backgroundColor: colors.backgroundAlt,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  heroDate: {
-    ...typography.caption,
-    marginBottom: spacing.xs,
-  },
-  heroDestination: {
-    ...typography.bodySmall,
-    marginBottom: spacing.md,
-  },
-  heroStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-    gap: spacing.lg,
-  },
-  heroStat: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: spacing.xs,
-  },
-  heroStatValue: {
-    ...typography.h2,
-  },
-  heroStatUnit: {
-    ...typography.body,
-  },
-  heroStatDivider: {
-    width: 1,
-    height: 24,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-  },
-  heroStatDividerSaver: {
-    backgroundColor: colors.border,
-  },
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.pill,
-    gap: spacing.xs,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-  },
-  badgeActive:       { backgroundColor: 'rgba(52,211,153,0.25)' },
-  badgeWaiting:      { backgroundColor: 'rgba(232,155,35,0.25)' },
-  badgeArchived:     { backgroundColor: 'rgba(255,255,255,0.12)' },
-  badgeActiveSaver:  { backgroundColor: '#E1F5EE' },
-  badgeWaitingSaver: { backgroundColor: '#FEF3C7' },
-  badgeArchivedSaver:{ backgroundColor: colors.gray200 },
-  badgeText: {
-    ...typography.caption,
-    color: colors.textInverse,
-    fontWeight: '600',
-  },
-  badgeTextMuted:    { color: 'rgba(255,255,255,0.65)' },
-  badgeTextSaver:    { color: colors.textPrimary },
-  badgeTextSaverMuted: { color: colors.textSecondary },
-  pulseDot: {
-    width: 7,
-    height: 7,
-    borderRadius: radius.pill,
-    backgroundColor: '#34D399',
-  },
+    // CTA banner (empty state, default mode)
+    ctaBanner: {
+      backgroundColor: '#FEF3C7',
+      borderRadius: radius.md,
+      padding: spacing.md,
+      marginBottom: spacing.md,
+      marginTop: spacing.sm,
+      borderWidth: 1,
+      borderColor: '#FDE68A',
+    },
+    ctaBannerText: {
+      ...typography.bodySmall,
+      color: '#92400E',
+      textAlign: 'center',
+    },
 
-  // CTA banner (empty state, default mode)
-  ctaBanner: {
-    backgroundColor: '#FEF3C7',
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    marginTop: spacing.sm,
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-  },
-  ctaBannerText: {
-    ...typography.bodySmall,
-    color: '#92400E',
-    textAlign: 'center',
-  },
+    // Last-updated bar
+    lastUpdatedBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      marginBottom: spacing.md,
+      marginTop: spacing.sm,
+      paddingHorizontal: spacing.xs,
+    },
+    lastUpdatedBarSaver: {
+      backgroundColor: c.accentWine,
+      borderRadius: radius.md,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
+      marginHorizontal: 0,
+    },
+    liveDotInline: {
+      width: 8,
+      height: 8,
+      borderRadius: radius.pill,
+      backgroundColor: c.live,
+    },
+    lastUpdatedText: {
+      ...typography.caption,
+      color: c.textSecondary,
+    },
+    lastUpdatedTextSaver: {
+      color: '#854F0B',
+    },
 
-  // Last-updated bar
-  lastUpdatedBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-    marginTop: spacing.sm,
-    paddingHorizontal: spacing.xs,
-  },
-  lastUpdatedBarSaver: {
-    backgroundColor: '#FEF3E7',
-    borderRadius: radius.md,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    marginHorizontal: 0,
-  },
-  liveDotInline: {
-    width: 8,
-    height: 8,
-    borderRadius: radius.pill,
-    backgroundColor: '#10B981', // mockup live green — add to theme in Session D
-  },
-  lastUpdatedText: {
-    ...typography.caption,
-    color: colors.textSecondary,
-  },
-  lastUpdatedTextSaver: {
-    color: '#854F0B',
-  },
+    // Section header
+    sectionTitle: {
+      ...typography.caption,
+      color: c.textSecondary,
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      marginBottom: spacing.sm,
+    },
 
-  // Section header
-  sectionTitle: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: spacing.sm,
-  },
+    // Default members: horizontal compact scroll
+    membersRow: {
+      gap: spacing.md,
+      paddingBottom: spacing.xs,
+    },
+    memberCard: {
+      width: 72,
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    memberAvatarWrap: { position: 'relative' },
+    memberLivePulse: {
+      position: 'absolute',
+      top: -2,
+      right: -2,
+    },
+    memberName: {
+      ...typography.caption,
+      color: c.textPrimary,
+      textAlign: 'center',
+      width: 72,
+    },
+    memberStatus: {
+      ...typography.caption,
+      color: c.textSecondary,
+      textAlign: 'center',
+      fontSize: 11,
+    },
+    memberStatusOffline: { color: c.gray500 },
 
-  // Default members: horizontal compact scroll
-  membersRow: {
-    gap: spacing.md,
-    paddingBottom: spacing.xs,
-  },
-  memberCard: {
-    width: 72,
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  memberAvatarWrap: {
-    position: 'relative',
-  },
-  memberLivePulse: {
-    position: 'absolute',
-    top: -2,
-    right: -2,
-  },
-  memberName: {
-    ...typography.caption,
-    color: colors.textPrimary,
-    textAlign: 'center',
-    width: 72,
-  },
-  memberStatus: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    fontSize: 11,
-  },
-  memberStatusOffline: { color: colors.gray500 },
+    // Saver mode: vertical card list
+    memberCardSaver: {
+      backgroundColor: c.gray100,
+      borderRadius: radius.md,
+      padding: spacing.md,
+      marginBottom: spacing.sm,
+    },
+    memberCardSaverTop: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    memberCardSaverInfo: { flex: 1 },
+    memberSaverName: {
+      ...typography.body,
+      color: c.textPrimary,
+      fontWeight: '500',
+    },
+    memberSaverLeader: {
+      ...typography.caption,
+      color: c.warning,
+      fontWeight: '600',
+    },
+    memberStatsRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.xs,
+      marginTop: spacing.sm,
+    },
+    statPill: {
+      backgroundColor: c.surface,
+      borderRadius: radius.sm,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 3,
+    },
+    statPillText: {
+      ...typography.caption,
+      color: c.textSecondary,
+      fontSize: 11,
+    },
+    batteryText: {
+      ...typography.caption,
+      fontWeight: '500',
+    },
 
-  // Saver mode: vertical card list
-  memberCardSaver: {
-    backgroundColor: colors.gray100,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  memberCardSaverTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  memberCardSaverInfo: {
-    flex: 1,
-  },
-  memberSaverName: {
-    ...typography.body,
-    color: colors.textPrimary,
-    fontWeight: '500',
-  },
-  memberSaverLeader: {
-    ...typography.caption,
-    color: colors.warning,
-    fontWeight: '600',
-  },
-  memberStatsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-    marginTop: spacing.sm,
-  },
-  statPill: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-  },
-  statPillText: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    fontSize: 11,
-  },
-  batteryText: {
-    ...typography.caption,
-    fontWeight: '500',
-  },
+    // Action bar
+    actionBar: {
+      backgroundColor: c.surface,
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.md,
+      borderTopWidth: 1,
+      borderTopColor: c.border,
+    },
 
-  // Avatar
-  avatarWrapper: { position: 'relative' },
-  avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: radius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarLeaderRing: {
-    borderWidth: 2.5,
-    borderColor: colors.warning,
-  },
-  avatarChar: {
-    ...typography.h3,
-    color: colors.textInverse,
-  },
-  liveDot: {
-    position: 'absolute',
-    bottom: 1,
-    right: 1,
-    width: 13,
-    height: 13,
-    borderRadius: radius.pill,
-    backgroundColor: '#10B981', // mockup live green — add to theme in Session D
-    borderWidth: 2,
-    borderColor: colors.backgroundAlt,
-  },
-
-  // Action bar
-  actionBar: {
-    backgroundColor: colors.surface,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-
-  // Utility
-  errorText: {
-    ...typography.body,
-    color: colors.danger,
-    textAlign: 'center',
-  },
-  mutedText: {
-    ...typography.body,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-});
+    // Utility
+    errorText: {
+      ...typography.body,
+      color: c.danger,
+      textAlign: 'center',
+    },
+    mutedText: {
+      ...typography.body,
+      color: c.textSecondary,
+      textAlign: 'center',
+    },
+  });
+}

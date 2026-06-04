@@ -11,7 +11,7 @@ import { MapScreen } from '@/screens/map/MapScreen';
 import { TripDetailScreen } from '@/screens/trip/TripDetailScreen';
 import { TripsScreen } from '@/screens/trips/TripsScreen';
 import { SettingsScreen } from '@/screens/settings/SettingsScreen';
-import { colors } from '@/theme';
+import { useTheme } from '@/theme/ThemeProvider';
 import type { AppTabParamList, HomeStackParamList } from './types';
 
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
@@ -44,6 +44,8 @@ function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
 const Tab = createBottomTabNavigator<AppTabParamList>();
 
 export function AppNavigator() {
+  const { colors } = useTheme();
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -51,6 +53,7 @@ export function AppNavigator() {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.gray500,
         tabBarStyle: {
+          backgroundColor: colors.surface,
           borderTopColor: colors.border,
         },
       }}
