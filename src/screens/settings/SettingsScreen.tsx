@@ -12,7 +12,6 @@ import {
 import { Screen } from '@/components/Screen';
 import { useAuth } from '@/auth/AuthContext';
 import { useTheme } from '@/theme/ThemeProvider';
-import { useDarkMode } from '@/hooks/useDarkMode';
 import { usePowerSaveMode } from '@/hooks/usePowerSaveMode';
 import { typography, spacing, radius } from '@/theme';
 import type { Palette } from '@/theme';
@@ -109,8 +108,7 @@ function PowerSaveRow({ active, onToggle, colors, isDark }: PowerSaveRowProps) {
 // ─── SettingsScreen ────────────────────────────────────────────────────────────
 
 export function SettingsScreen() {
-  const { colors, isDark } = useTheme();
-  const { setDarkMode } = useDarkMode();
+  const { colors, isDark, setDarkMode } = useTheme();
   const { powerSave, togglePowerSave } = usePowerSaveMode();
   const { user, signOut } = useAuth();
 
