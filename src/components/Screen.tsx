@@ -2,7 +2,8 @@ import React, { ReactNode } from 'react';
 import { StyleSheet, View, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { colors, spacing } from '@/theme';
+import { useTheme } from '@/theme/ThemeProvider';
+import { spacing } from '@/theme';
 
 interface ScreenProps {
   children: ReactNode;
@@ -12,7 +13,8 @@ interface ScreenProps {
 }
 
 /**
- * Standard screen wrapper — handles safe area, status bar, and base padding
+ * Standard screen wrapper — handles safe area, status bar, and base padding.
+ * Uses ThemeProvider for bg color so dark mode works correctly.
  */
 export function Screen({
   children,
@@ -20,17 +22,18 @@ export function Screen({
   padded = true,
   background = 'default',
 }: ScreenProps) {
-  const bgColor =
-    background === 'alt' ? colors.backgroundAlt : colors.background;
+  const { colors, isDark } = useTheme();
+  const bgColor = background === 'alt' ? colors.backgroundAlt : colors.background;
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: bgColor }]} edges={['top', 'left', 'right']}>
-      <StatusBar style="dark" />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <View style={[padded && styles.padded, style]}>{children}</View>
     </SafeAreaView>
   );
 }
 
+// Layout/spacing only — no colors (those are computed inline above)
 const styles = StyleSheet.create({
   root: {
     flex: 1,

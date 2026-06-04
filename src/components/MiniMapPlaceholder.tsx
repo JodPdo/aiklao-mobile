@@ -4,7 +4,9 @@
 
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, radius, spacing } from '@/theme';
+import { useTheme } from '@/theme/ThemeProvider';
+import { radius, spacing } from '@/theme';
+import type { Palette } from '@/theme';
 
 interface Member {
   id: string;
@@ -28,7 +30,9 @@ const POSITIONS: { top: string; left: string }[] = [
 ];
 
 export function MiniMapPlaceholder({ members }: Props) {
+  const { colors } = useTheme();
   const withLocation = members.filter(m => m.hasLocation);
+  const styles = makeStyles(colors);
 
   return (
     <View style={styles.container}>
@@ -53,44 +57,45 @@ export function MiniMapPlaceholder({ members }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    height: 120,
-    marginHorizontal: spacing.md,
-    marginTop: spacing.sm,
-    backgroundColor: '#EAEFEE',
-    borderRadius: radius.md,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  grid: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    // RN doesn't support background-image; subtle solid is fine for placeholder
-  },
-  pin: {
-    position: 'absolute',
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    borderWidth: 2,
-    borderColor: colors.white,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  pinText: {
-    color: colors.white,
-    fontSize: 11,
-    fontWeight: '500',
-  },
-  label: {
-    position: 'absolute',
-    bottom: 6,
-    alignSelf: 'center',
-    fontSize: 10,
-    color: colors.textSecondary,
-  },
-});
+function makeStyles(c: Palette) {
+  return StyleSheet.create({
+    container: {
+      height: 120,
+      marginHorizontal: spacing.md,
+      marginTop: spacing.sm,
+      backgroundColor: '#EAEFEE',  // faux-map texture — intentionally fixed
+      borderRadius: radius.md,
+      overflow: 'hidden',
+      position: 'relative',
+    },
+    grid: {
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+    },
+    pin: {
+      position: 'absolute',
+      width: 26,
+      height: 26,
+      borderRadius: 13,
+      borderWidth: 2,
+      borderColor: c.white,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    pinText: {
+      color: c.white,
+      fontSize: 11,
+      fontWeight: '500',
+    },
+    label: {
+      position: 'absolute',
+      bottom: 6,
+      alignSelf: 'center',
+      fontSize: 10,
+      color: c.textSecondary,
+    },
+  });
+}

@@ -6,7 +6,8 @@ import {
   Text,
   ViewStyle,
 } from 'react-native';
-import { colors, radius, spacing, typography } from '@/theme';
+import { useTheme } from '@/theme/ThemeProvider';
+import { radius, spacing, typography } from '@/theme';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
@@ -29,11 +30,38 @@ export function Button({
   fullWidth = false,
   style,
 }: ButtonProps) {
+  const { colors } = useTheme();
   const isDisabled = disabled || loading;
+
+  // Variant styles computed inside component so they pick up the active theme palette
+  const variantStyles: Record<ButtonVariant, { container: ViewStyle; labelColor: string }> = {
+    primary: {
+      container: { backgroundColor: colors.primary },
+      labelColor: colors.white,
+    },
+    secondary: {
+      container: {
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.primary,
+      },
+      labelColor: colors.primary,
+    },
+    ghost: {
+      container: { backgroundColor: 'transparent' },
+      labelColor: colors.primary,
+    },
+    danger: {
+      container: { backgroundColor: colors.danger },
+      labelColor: colors.white,
+    },
+  };
+
+  const current = variantStyles[variant];
 
   const containerStyle: ViewStyle = {
     ...styles.base,
-    ...variantStyles[variant].container,
+    ...current.container,
     ...(fullWidth && { alignSelf: 'stretch' }),
     ...(isDisabled && { opacity: 0.5 }),
     ...style,
@@ -49,14 +77,15 @@ export function Button({
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={variantStyles[variant].label.color} />
+        <ActivityIndicator color={current.labelColor} />
       ) : (
-        <Text style={[styles.label, variantStyles[variant].label]}>{label}</Text>
+        <Text style={[styles.label, { color: current.labelColor }]}>{label}</Text>
       )}
     </Pressable>
   );
 }
 
+// Layout/spacing only — no theme colors
 const styles = StyleSheet.create({
   base: {
     paddingHorizontal: spacing.lg,
@@ -71,29 +100,3 @@ const styles = StyleSheet.create({
     ...typography.button,
   },
 });
-
-const variantStyles: Record<
-  ButtonVariant,
-  { container: ViewStyle; label: { color: string } }
-> = {
-  primary: {
-    container: { backgroundColor: colors.primary },
-    label: { color: colors.white },
-  },
-  secondary: {
-    container: {
-      backgroundColor: colors.white,
-      borderWidth: 1,
-      borderColor: colors.primary,
-    },
-    label: { color: colors.primary },
-  },
-  ghost: {
-    container: { backgroundColor: 'transparent' },
-    label: { color: colors.primary },
-  },
-  danger: {
-    container: { backgroundColor: colors.danger },
-    label: { color: colors.white },
-  },
-};
