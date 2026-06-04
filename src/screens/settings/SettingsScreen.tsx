@@ -110,7 +110,7 @@ function PowerSaveRow({ active, onToggle, colors, isDark }: PowerSaveRowProps) {
 
 export function SettingsScreen() {
   const { colors, isDark } = useTheme();
-  const { pref, setDarkModePref } = useDarkMode();
+  const { setDarkMode } = useDarkMode();
   const { powerSave, togglePowerSave } = usePowerSaveMode();
   const { user, signOut } = useAuth();
 
@@ -119,7 +119,7 @@ export function SettingsScreen() {
   // Dark mode Switch: 'dark' = on, 'auto' = off (follow device)
   const darkOn = isDark;  // reflects resolved state, not just pref (avoids 'auto' ambiguity)
   function handleDarkToggle(next: boolean) {
-    setDarkModePref(next ? 'dark' : 'light');  // explicit override; user must re-enable auto via device settings
+    setDarkMode(next);
   }
 
   return (
@@ -194,7 +194,7 @@ export function SettingsScreen() {
           <SettingsRow
             icon="🌙"
             label="โหมดมืด"
-            sub="ตามระบบ · ลด OLED battery"
+            sub="โทนสีเข้ม · ลด OLED battery"
             rightControl={
               <Switch
                 value={darkOn}
