@@ -117,9 +117,9 @@ export function SettingsScreen() {
   const styles = makeStyles(colors);
 
   // Dark mode Switch: 'dark' = on, 'auto' = off (follow device)
-  const darkOn = pref === 'dark';
+  const darkOn = isDark;  // reflects resolved state, not just pref (avoids 'auto' ambiguity)
   function handleDarkToggle(next: boolean) {
-    setDarkModePref(next ? 'dark' : 'auto');
+    setDarkModePref(next ? 'dark' : 'light');  // explicit override; user must re-enable auto via device settings
   }
 
   return (
