@@ -7,6 +7,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Text } from 'react-native';
 import { HomeScreen } from '@/screens/home/HomeScreen';
+import { CreateTripScreen } from '@/screens/trip/CreateTripScreen';
 import { MapScreen } from '@/screens/map/MapScreen';
 import { TripDetailScreen } from '@/screens/trip/TripDetailScreen';
 import { TripsScreen } from '@/screens/trips/TripsScreen';
@@ -20,6 +21,15 @@ function HomeStackNavigator() {
   return (
     <HomeStack.Navigator screenOptions={{ headerShown: false }}>
       <HomeStack.Screen name="HomeMain" component={HomeScreen} />
+      <HomeStack.Screen
+        name="CreateTrip"
+        component={CreateTripScreen}
+        options={{
+          headerShown: true,
+          title: 'สร้างทริปใหม่',
+          headerBackTitle: 'กลับ',
+        }}
+      />
       <HomeStack.Screen
         name="MapScreen"
         component={MapScreen}

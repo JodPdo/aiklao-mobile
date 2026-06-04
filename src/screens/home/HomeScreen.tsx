@@ -33,7 +33,6 @@ export function HomeScreen() {
   const { user } = useAuth();
   const navigation = useNavigation<HomeNavProp>();
   const { colors } = useTheme();
-  const [isStarting, setIsStarting] = useState(false);
   const [activeTrips, setActiveTrips] = useState<TripSummary[]>([]);
   const [bgPermStatus, setBgPermStatus] = useState<BgPermStatus>('checking');
   const styles = makeStyles(colors);
@@ -82,31 +81,8 @@ export function HomeScreen() {
     }, []),
   );
 
-  async function handleStart() {
-    setIsStarting(true);
-    try {
-      const response = await api.post<{
-        trip: { id: string; name: string; status: string; createdAt: string };
-        member: { id: string; isLeader: boolean };
-      }>('/api/mobile/trips/start', {});
-      const tripId = response.data.trip.id;
-
-      try {
-        await startBackgroundTracking(tripId);
-      } catch (bgErr: any) {
-        console.log('[home] bg tracking start failed (foreground-only):', bgErr?.message ?? bgErr);
-      }
-
-      navigation.navigate('MapScreen', { tripId });
-    } catch (err: any) {
-      if (err?.response?.status === 401) return;
-      Alert.alert(
-        'Could not start trip', // TODO(thai)
-        'Please check your connection and try again.', // TODO(thai)
-      );
-    } finally {
-      setIsStarting(false);
-    }
+  function handleStartNewTrip() {
+    navigation.navigate('CreateTrip');
   }
 
   function handleResume() {
@@ -165,9 +141,7 @@ export function HomeScreen() {
             <Button
               label="Start New Trip" // TODO(thai)
               variant="secondary"
-              onPress={handleStart}
-              loading={isStarting}
-              disabled={isStarting}
+              onPress={handleStartNewTrip}
               fullWidth
               style={{ marginTop: spacing.sm }}
             />
@@ -181,9 +155,7 @@ export function HomeScreen() {
             </Text>
             <Button
               label="Start New Trip" // TODO(thai)
-              onPress={handleStart}
-              loading={isStarting}
-              disabled={isStarting}
+              onPress={handleStartNewTrip}
               fullWidth
               style={{ marginTop: spacing.lg }}
             />
