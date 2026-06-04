@@ -1,6 +1,6 @@
 // src/screens/trip/TripDetailScreen.tsx
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   Image,
@@ -8,6 +8,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextStyle,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -17,13 +18,17 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
+import { LivePulseDot } from '@/components/LivePulseDot';
+import { MiniMapPlaceholder } from '@/components/MiniMapPlaceholder';
 import { useAuth } from '@/auth/AuthContext';
 import { api } from '@/api/client';
 import {
   startBackgroundTracking,
   stopBackgroundTracking,
   getActiveTripId,
+  restartBackgroundTracking,
 } from '@/services/locationTask';
+import { usePowerSaveMode } from '@/hooks/usePowerSaveMode';
 import { colors, radius, spacing, typography } from '@/theme';
 import type { HomeStackParamList } from '@/navigation/types';
 
@@ -116,9 +121,19 @@ function memberStatusLabel(member: Member): string {
   return `${member.lastLocation.distanceFromLeaderKm?.toFixed(1) ?? '?'} กม.`;
 }
 
+function isRecent(iso: string): boolean {
+  return Date.now() - new Date(iso).getTime() < 60_000;
+}
+
+function getBatteryColor(percent: number): string {
+  if (percent >= 50) return '#0F6E56';
+  if (percent >= 20) return '#854F0B';
+  return '#791F1F';
+}
+
 // ─── Avatar ────────────────────────────────────────────────────────────────────
 
-function Avatar({ member }: { member: Member }) {
+function Avatar({ member, size = 52 }: { member: Member; size?: number }) {
   const [imgFailed, setImgFailed] = useState(false);
   const showFallback = !member.pictureUrl || imgFailed;
   const bg = avatarColor(member.lineUserId);
@@ -127,16 +142,22 @@ function Avatar({ member }: { member: Member }) {
     !!member.lastLocation &&
     Date.now() - new Date(member.lastLocation.createdAt).getTime() <= OFFLINE_THRESHOLD_MS;
 
+  const avatarStyle = [
+    styles.avatar,
+    { width: size, height: size, borderRadius: size / 2 },
+    member.isLeader && styles.avatarLeaderRing,
+  ] as const;
+
   return (
     <View style={styles.avatarWrapper}>
       {showFallback ? (
-        <View style={[styles.avatar, { backgroundColor: bg }, member.isLeader && styles.avatarLeaderRing]}>
-          <Text style={styles.avatarChar}>{char}</Text>
+        <View style={[...avatarStyle, { backgroundColor: bg }]}>
+          <Text style={[styles.avatarChar, size < 52 && { fontSize: 14 }]}>{char}</Text>
         </View>
       ) : (
         <Image
           source={{ uri: member.pictureUrl! }}
-          style={[styles.avatar, member.isLeader && styles.avatarLeaderRing]}
+          style={avatarStyle as any}
           onError={() => setImgFailed(true)}
         />
       )}
@@ -147,7 +168,17 @@ function Avatar({ member }: { member: Member }) {
 
 // ─── AppBar ────────────────────────────────────────────────────────────────────
 
-function TripDetailAppBar({ title, onBack }: { title: string; onBack: () => void }) {
+function TripDetailAppBar({
+  title,
+  onBack,
+  powerSave,
+  onToggleMode,
+}: {
+  title: string;
+  onBack: () => void;
+  powerSave: boolean;
+  onToggleMode: () => void;
+}) {
   return (
     <View style={styles.appBar}>
       <TouchableOpacity
@@ -158,10 +189,15 @@ function TripDetailAppBar({ title, onBack }: { title: string; onBack: () => void
         <Text style={styles.backBtnText}>‹</Text>
       </TouchableOpacity>
       <Text style={styles.appBarTitle} numberOfLines={1}>{title}</Text>
-      <View style={styles.appBarRight}>
-        {/* Share — Session E placeholder */}
-        <Text style={styles.shareIcon}>↑</Text>
-      </View>
+      <TouchableOpacity
+        style={[styles.modeToggle, powerSave ? styles.modeToggleSaver : styles.modeToggleDefault]}
+        onPress={onToggleMode}
+        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+      >
+        <Text style={[styles.modeToggleText, powerSave ? styles.modeToggleTextSaver : styles.modeToggleTextDefault]}>
+          ⚡ {powerSave ? 'ประหยัด' : 'ปกติ'}
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -174,6 +210,9 @@ export function TripDetailScreen() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const { tripId } = route.params;
+
+  // 6b — power-save hook
+  const { powerSave, batteryLevel, togglePowerSave } = usePowerSaveMode();
 
   const [data, setData] = useState<TripData | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -217,11 +256,30 @@ export function TripDetailScreen() {
     .at(-1);
   const lastUpdated = latestTs != null ? formatRelativeTime(latestTs) : null;
 
+  // 6c — auto-refresh every 60s in default mode; cleared when power-save flips on or trip archived
+  useEffect(() => {
+    if (powerSave || isArchived) return;
+    const id = setInterval(() => { load(); }, 60_000);
+    return () => clearInterval(id);
+  }, [powerSave, isArchived, load]);
+
   async function onRefresh() {
     setRefreshing(true);
     await load();
     setActiveTripId(await getActiveTripId());
     setRefreshing(false);
+  }
+
+  // 6b — toggle handler: flip mode + restart bg task with new interval
+  async function handleToggleMode() {
+    await togglePowerSave();
+    if (isSharing) {
+      try {
+        await restartBackgroundTracking();
+      } catch (err: any) {
+        console.log('[trip-detail] restart bg failed:', err?.message ?? err);
+      }
+    }
   }
 
   async function handleShareLocation() {
@@ -291,7 +349,12 @@ export function TripDetailScreen() {
   if (error != null) {
     return (
       <Screen padded={false} style={styles.flex}>
-        <TripDetailAppBar title="รายละเอียดทริป" onBack={() => navigation.goBack()} />
+        <TripDetailAppBar
+          title="รายละเอียดทริป"
+          onBack={() => navigation.goBack()}
+          powerSave={powerSave}
+          onToggleMode={handleToggleMode}
+        />
         <View style={styles.centered}>
           <Text style={styles.errorText}>{error}</Text>
           <Button label="ลองอีกครั้ง" onPress={load} style={{ marginTop: spacing.lg }} />
@@ -303,7 +366,12 @@ export function TripDetailScreen() {
   if (data == null) {
     return (
       <Screen padded={false} style={styles.flex}>
-        <TripDetailAppBar title="รายละเอียดทริป" onBack={() => navigation.goBack()} />
+        <TripDetailAppBar
+          title="รายละเอียดทริป"
+          onBack={() => navigation.goBack()}
+          powerSave={powerSave}
+          onToggleMode={handleToggleMode}
+        />
         <View style={styles.centered}>
           <Text style={styles.mutedText}>กำลังโหลด...</Text>
         </View>
@@ -311,9 +379,20 @@ export function TripDetailScreen() {
     );
   }
 
+  // Text color helpers — inline for conditional saver-mode overrides
+  const textOnHero: TextStyle = { color: powerSave ? colors.textPrimary : colors.textInverse };
+  const textOnHeroMuted: TextStyle = { color: powerSave ? colors.textSecondary : 'rgba(255,255,255,0.75)' };
+  const textOnHeroSoft: TextStyle = { color: powerSave ? colors.textSecondary : 'rgba(255,255,255,0.9)' };
+
   return (
     <Screen padded={false} style={styles.flex}>
-      <TripDetailAppBar title={data.trip.name} onBack={() => navigation.goBack()} />
+      {/* 6d — AppBar with mode toggle */}
+      <TripDetailAppBar
+        title={data.trip.name}
+        onBack={() => navigation.goBack()}
+        powerSave={powerSave}
+        onToggleMode={handleToggleMode}
+      />
 
       <ScrollView
         style={styles.scroll}
@@ -328,58 +407,65 @@ export function TripDetailScreen() {
           />
         }
       >
-        {/* Hero card */}
-        <View style={styles.heroCard}>
-          <Text style={styles.heroDate}>{formatDate(data.trip.createdAt)}</Text>
+        {/* 6e — Hero card: green in default, gray in saver */}
+        <View style={[styles.heroCard, powerSave && styles.heroCardSaver]}>
+          <Text style={[styles.heroDate, textOnHeroMuted]}>{formatDate(data.trip.createdAt)}</Text>
           {data.trip.destination != null && (
-            <Text style={styles.heroDestination}>📍 {data.trip.destination.name}</Text>
+            <Text style={[styles.heroDestination, textOnHeroSoft]}>
+              📍 {data.trip.destination.name}
+            </Text>
           )}
           <View style={styles.heroStats}>
             <View style={styles.heroStat}>
-              <Text style={styles.heroStatValue}>
+              <Text style={[styles.heroStatValue, textOnHero]}>
                 {isEmpty || data.trip.totalDistanceKm == null
                   ? '—'
                   : data.trip.totalDistanceKm.toFixed(1)}
               </Text>
-              <Text style={styles.heroStatUnit}>กม.</Text>
+              <Text style={[styles.heroStatUnit, textOnHeroMuted]}>กม.</Text>
             </View>
-            <View style={styles.heroStatDivider} />
+            <View style={[styles.heroStatDivider, powerSave && styles.heroStatDividerSaver]} />
             <View style={styles.heroStat}>
-              <Text style={styles.heroStatValue}>
+              <Text style={[styles.heroStatValue, textOnHero]}>
                 {isEmpty ? 'เพิ่งเริ่ม' : formatDuration(data.trip.durationSeconds)}
               </Text>
             </View>
           </View>
 
           {isArchived ? (
-            <View style={[styles.badge, styles.badgeArchived]}>
-              <Text style={[styles.badgeText, styles.badgeTextMuted]}>จบแล้ว</Text>
+            <View style={[styles.badge, powerSave ? styles.badgeArchivedSaver : styles.badgeArchived]}>
+              <Text style={[styles.badgeText, powerSave ? styles.badgeTextSaverMuted : styles.badgeTextMuted]}>
+                จบแล้ว
+              </Text>
             </View>
           ) : isEmpty ? (
-            <View style={[styles.badge, styles.badgeWaiting]}>
+            <View style={[styles.badge, powerSave ? styles.badgeWaitingSaver : styles.badgeWaiting]}>
               <View style={[styles.pulseDot, { backgroundColor: colors.warning }]} />
-              <Text style={styles.badgeText}>รอข้อมูล</Text>
+              <Text style={[styles.badgeText, powerSave && styles.badgeTextSaver]}>รอข้อมูล</Text>
             </View>
           ) : (
-            <View style={[styles.badge, styles.badgeActive]}>
-              <View style={styles.pulseDot} />
-              <Text style={styles.badgeText}>กำลังเดินทาง</Text>
+            <View style={[styles.badge, powerSave ? styles.badgeActiveSaver : styles.badgeActive]}>
+              <View style={[styles.pulseDot, { backgroundColor: powerSave ? colors.primary : '#34D399' }]} />
+              <Text style={[styles.badgeText, powerSave && styles.badgeTextSaver]}>กำลังเดินทาง</Text>
             </View>
           )}
         </View>
 
-        {/* Map placeholder — Path B until Google Maps API key (Session E.1.5) */}
-        <View style={styles.mapBox}>
-          <Text style={styles.mapEmoji}>{isEmpty ? '📍' : '🗺️'}</Text>
-          <Text style={styles.mapHint}>
-            {isEmpty
-              ? 'ยังไม่มีข้อมูลตำแหน่ง'
-              : 'แผนที่ต้องการ Google Maps API key\n(Session E.1.5)'}
-          </Text>
-        </View>
+        {/* 6f — Mini-map: default mode only, replaces old static mapBox */}
+        {!powerSave && (
+          <MiniMapPlaceholder
+            members={data.members.map(m => ({
+              id: m.id,
+              lineUserId: m.lineUserId,
+              hasLocation: m.lastLocation !== null,
+              color: avatarColor(m.lineUserId),
+              char: avatarChar(m.displayName),
+            }))}
+          />
+        )}
 
-        {/* Yellow CTA banner — empty state only */}
-        {isEmpty && (
+        {/* CTA banner — empty state, default mode only */}
+        {isEmpty && !powerSave && (
           <View style={styles.ctaBanner}>
             <Text style={styles.ctaBannerText}>
               ใช้แอป AiKlao Mobile — การแชร์ตำแหน่งต้องเปิดผ่านแอปเท่านั้น
@@ -387,51 +473,110 @@ export function TripDetailScreen() {
           </View>
         )}
 
-        {/* Last-updated bar — populated state only */}
-        {!isEmpty && lastUpdated != null && (
-          <View style={styles.lastUpdatedBar}>
-            <View style={styles.liveDotInline} />
-            <Text style={styles.lastUpdatedText}>
-              อัพเดต {lastUpdated} · จากแอป AiKlao Mobile
+        {/* 6g — Update bar: mode-aware message */}
+        {(powerSave || (!isEmpty && lastUpdated != null)) && (
+          <View style={[styles.lastUpdatedBar, powerSave && styles.lastUpdatedBarSaver]}>
+            {!powerSave && <View style={styles.liveDotInline} />}
+            <Text style={[styles.lastUpdatedText, powerSave && styles.lastUpdatedTextSaver]}>
+              {powerSave
+                ? `🔋 โหมดประหยัด${batteryLevel !== null ? ` (${Math.round(batteryLevel * 100)}%)` : ''} · pull-to-refresh เท่านั้น`
+                : `อัพเดต ${lastUpdated} · auto-refresh ทุก 60 วินาที`}
             </Text>
           </View>
         )}
 
-        {/* Members horizontal scroll */}
+        {/* 6h — Members section */}
         <Text style={styles.sectionTitle}>สมาชิก ({data.members.length})</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.membersRow}
-        >
-          {data.members.map(member => (
-            <View key={member.id} style={styles.memberCard}>
-              <Avatar member={member} />
-              <Text style={styles.memberName} numberOfLines={1}>{member.displayName}</Text>
-              <Text
-                style={[
-                  styles.memberStatus,
-                  memberStatusLabel(member) === 'ออฟไลน์' && styles.memberStatusOffline,
-                ]}
-              >
-                {memberStatusLabel(member)}
-              </Text>
-            </View>
-          ))}
-        </ScrollView>
+
+        {powerSave ? (
+          // Saver mode: vertical card list
+          // TODO(Phase 5.5+): sort by battery low→high when other members' battery is available
+          <View>
+            {data.members.map(m => {
+              const isMe = m.lineUserId === user?.lineUserId;
+              const memberBattery = isMe && batteryLevel !== null
+                ? Math.round(batteryLevel * 100)
+                : null;
+              return (
+                <View key={m.id} style={styles.memberCardSaver}>
+                  <View style={styles.memberCardSaverTop}>
+                    <Avatar member={m} size={40} />
+                    <View style={styles.memberCardSaverInfo}>
+                      <Text style={styles.memberSaverName} numberOfLines={1}>
+                        {m.displayName}
+                        {m.isLeader && (
+                          <Text style={styles.memberSaverLeader}> ★ หัวหน้า</Text>
+                        )}
+                      </Text>
+                    </View>
+                    {memberBattery !== null && (
+                      <Text style={[styles.batteryText, { color: getBatteryColor(memberBattery) }]}>
+                        {memberBattery}%
+                      </Text>
+                    )}
+                  </View>
+                  <View style={styles.memberStatsRow}>
+                    <View style={styles.statPill}>
+                      <Text style={styles.statPillText}>
+                        📍 {m.lastLocation?.distanceFromLeaderKm != null
+                          ? `${m.lastLocation.distanceFromLeaderKm.toFixed(1)} กม.`
+                          : '—'}
+                      </Text>
+                    </View>
+                    {m.lastLocation && (
+                      <View style={styles.statPill}>
+                        <Text style={styles.statPillText}>
+                          🕐 {formatRelativeTime(m.lastLocation.createdAt)}
+                        </Text>
+                      </View>
+                    )}
+                    <View style={styles.statPill}>
+                      <Text style={styles.statPillText}>
+                        {memberStatusLabel(m)}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        ) : (
+          // 6i — Default mode: horizontal compact scroll with LivePulseDot for recent members
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.membersRow}
+          >
+            {data.members.map(member => (
+              <View key={member.id} style={styles.memberCard}>
+                <View style={styles.memberAvatarWrap}>
+                  <Avatar member={member} />
+                  {member.lastLocation && isRecent(member.lastLocation.createdAt) && (
+                    <LivePulseDot color="#10B981" size={5} style={styles.memberLivePulse} />
+                  )}
+                </View>
+                <Text style={styles.memberName} numberOfLines={1}>{member.displayName}</Text>
+                <Text
+                  style={[
+                    styles.memberStatus,
+                    memberStatusLabel(member) === 'ออฟไลน์' && styles.memberStatusOffline,
+                  ]}
+                >
+                  {memberStatusLabel(member)}
+                </Text>
+              </View>
+            ))}
+          </ScrollView>
+        )}
 
         <View style={{ height: spacing.xl }} />
       </ScrollView>
 
-      {/* Sticky action buttons */}
+      {/* Sticky action buttons — Q9: both hidden for archived (unchanged from Session C) */}
       {!isArchived && (
         <View style={[styles.actionBar, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
           {isEmpty ? (
-            <Button
-              label="เปิดแอป AiKlao"
-              fullWidth
-              onPress={() => {}}
-            />
+            <Button label="เปิดแอป AiKlao" fullWidth onPress={() => {}} />
           ) : isSharing ? (
             <Button label="กำลังแชร์อยู่" fullWidth disabled />
           ) : (
@@ -494,15 +639,27 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     flex: 1,
   },
-  appBarRight: {
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
+  // Mode toggle pill in AppBar
+  modeToggle: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
   },
-  shareIcon: {
-    color: colors.textInverse,
-    fontSize: 20,
+  modeToggleDefault: {
+    backgroundColor: '#E1F5EE',
+  },
+  modeToggleSaver: {
+    backgroundColor: '#FAEEDA',
+  },
+  modeToggleText: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  modeToggleTextDefault: {
+    color: '#0F6E56',
+  },
+  modeToggleTextSaver: {
+    color: '#854F0B',
   },
 
   // ScrollView
@@ -520,14 +677,17 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     marginBottom: spacing.md,
   },
+  heroCardSaver: {
+    backgroundColor: colors.backgroundAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
   heroDate: {
     ...typography.caption,
-    color: 'rgba(255,255,255,0.75)',
     marginBottom: spacing.xs,
   },
   heroDestination: {
     ...typography.bodySmall,
-    color: 'rgba(255,255,255,0.9)',
     marginBottom: spacing.md,
   },
   heroStats: {
@@ -543,16 +703,17 @@ const styles = StyleSheet.create({
   },
   heroStatValue: {
     ...typography.h2,
-    color: colors.textInverse,
   },
   heroStatUnit: {
     ...typography.body,
-    color: 'rgba(255,255,255,0.75)',
   },
   heroStatDivider: {
     width: 1,
     height: 24,
     backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+  heroStatDividerSaver: {
+    backgroundColor: colors.border,
   },
   badge: {
     flexDirection: 'row',
@@ -564,47 +725,34 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     backgroundColor: 'rgba(255,255,255,0.15)',
   },
-  badgeActive: { backgroundColor: 'rgba(52,211,153,0.25)' },
-  badgeWaiting: { backgroundColor: 'rgba(232,155,35,0.25)' },
-  badgeArchived: { backgroundColor: 'rgba(255,255,255,0.12)' },
+  badgeActive:       { backgroundColor: 'rgba(52,211,153,0.25)' },
+  badgeWaiting:      { backgroundColor: 'rgba(232,155,35,0.25)' },
+  badgeArchived:     { backgroundColor: 'rgba(255,255,255,0.12)' },
+  badgeActiveSaver:  { backgroundColor: '#E1F5EE' },
+  badgeWaitingSaver: { backgroundColor: '#FEF3C7' },
+  badgeArchivedSaver:{ backgroundColor: colors.gray200 },
   badgeText: {
     ...typography.caption,
     color: colors.textInverse,
     fontWeight: '600',
   },
-  badgeTextMuted: { color: 'rgba(255,255,255,0.65)' },
+  badgeTextMuted:    { color: 'rgba(255,255,255,0.65)' },
+  badgeTextSaver:    { color: colors.textPrimary },
+  badgeTextSaverMuted: { color: colors.textSecondary },
   pulseDot: {
     width: 7,
     height: 7,
     borderRadius: radius.pill,
-    backgroundColor: '#34D399', // mockup live green (active badge)
+    backgroundColor: '#34D399',
   },
 
-  // Map placeholder
-  mapBox: {
-    height: 140,
-    backgroundColor: colors.gray100,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
-    gap: spacing.sm,
-  },
-  mapEmoji: { fontSize: 36 },
-  mapHint: {
-    ...typography.bodySmall,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-
-  // CTA banner (empty state)
+  // CTA banner (empty state, default mode)
   ctaBanner: {
     backgroundColor: '#FEF3C7',
     borderRadius: radius.md,
     padding: spacing.md,
     marginBottom: spacing.md,
+    marginTop: spacing.sm,
     borderWidth: 1,
     borderColor: '#FDE68A',
   },
@@ -620,7 +768,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
     marginBottom: spacing.md,
+    marginTop: spacing.sm,
     paddingHorizontal: spacing.xs,
+  },
+  lastUpdatedBarSaver: {
+    backgroundColor: '#FEF3E7',
+    borderRadius: radius.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginHorizontal: 0,
   },
   liveDotInline: {
     width: 8,
@@ -631,6 +787,9 @@ const styles = StyleSheet.create({
   lastUpdatedText: {
     ...typography.caption,
     color: colors.textSecondary,
+  },
+  lastUpdatedTextSaver: {
+    color: '#854F0B',
   },
 
   // Section header
@@ -643,7 +802,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
 
-  // Members
+  // Default members: horizontal compact scroll
   membersRow: {
     gap: spacing.md,
     paddingBottom: spacing.xs,
@@ -652,6 +811,14 @@ const styles = StyleSheet.create({
     width: 72,
     alignItems: 'center',
     gap: spacing.xs,
+  },
+  memberAvatarWrap: {
+    position: 'relative',
+  },
+  memberLivePulse: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
   },
   memberName: {
     ...typography.caption,
@@ -666,6 +833,53 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   memberStatusOffline: { color: colors.gray500 },
+
+  // Saver mode: vertical card list
+  memberCardSaver: {
+    backgroundColor: colors.gray100,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  memberCardSaverTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  memberCardSaverInfo: {
+    flex: 1,
+  },
+  memberSaverName: {
+    ...typography.body,
+    color: colors.textPrimary,
+    fontWeight: '500',
+  },
+  memberSaverLeader: {
+    ...typography.caption,
+    color: colors.warning,
+    fontWeight: '600',
+  },
+  memberStatsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+  },
+  statPill: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+  },
+  statPillText: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontSize: 11,
+  },
+  batteryText: {
+    ...typography.caption,
+    fontWeight: '500',
+  },
 
   // Avatar
   avatarWrapper: { position: 'relative' },

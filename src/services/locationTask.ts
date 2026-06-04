@@ -10,6 +10,16 @@ import { api } from '@/api/client';
 
 export const BG_LOCATION_TASK = 'aiklao-bg-location';
 export const ACTIVE_TRIP_KEY = 'aiklao.bg.active_trip_id';
+export const POWER_SAVE_KEY = 'aiklao.power_save_mode';  // shared with usePowerSaveMode hook
+
+async function getCurrentInterval(): Promise<number> {
+  try {
+    const saved = await AsyncStorage.getItem(POWER_SAVE_KEY);
+    return saved === '1' ? 30000 : 10000;  // 30s power-save vs 10s default
+  } catch {
+    return 10000;
+  }
+}
 
 TaskManager.defineTask(
   BG_LOCATION_TASK,
@@ -49,10 +59,12 @@ TaskManager.defineTask(
 // Set AsyncStorage FIRST so it's always written even if startLocationUpdatesAsync throws.
 export async function startBackgroundTracking(tripId: string): Promise<void> {
   await AsyncStorage.setItem(ACTIVE_TRIP_KEY, tripId);
+  const interval = await getCurrentInterval();
+  const powerSave = interval > 10000;
   await Location.startLocationUpdatesAsync(BG_LOCATION_TASK, {
-    accuracy: Location.Accuracy.High,
-    distanceInterval: 10,
-    timeInterval: 10000,
+    accuracy: powerSave ? Location.Accuracy.Balanced : Location.Accuracy.High,
+    distanceInterval: powerSave ? 25 : 10,  // looser in power-save mode
+    timeInterval: interval,
     foregroundService: {
       notificationTitle: 'AiKlao tracking trip', // TODO(thai)
       notificationBody: 'Tap to view trip map',  // TODO(thai)
@@ -61,6 +73,15 @@ export async function startBackgroundTracking(tripId: string): Promise<void> {
     pausesUpdatesAutomatically: false,
     activityType: Location.LocationActivityType.AutomotiveNavigation,
   });
+}
+
+// Restart with updated interval — called when power-save mode is toggled while sharing.
+export async function restartBackgroundTracking(): Promise<void> {
+  const tripId = await getActiveTripId();
+  if (!tripId) return;
+  const isRunning = await Location.hasStartedLocationUpdatesAsync(BG_LOCATION_TASK);
+  if (isRunning) await Location.stopLocationUpdatesAsync(BG_LOCATION_TASK);
+  await startBackgroundTracking(tripId);
 }
 
 // Always removes AsyncStorage, even if the task was not running (e.g. killed by OS).
