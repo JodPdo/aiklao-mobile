@@ -41,6 +41,23 @@ export const LEAFLET_MAP_HTML = `<!DOCTYPE html>
       object-fit: cover;
       display: block;
     }
+    /* Phase 6.5 — arrived badge (green checkmark, top-right corner of avatar) */
+    .marker-avatar.arrived::after {
+      content: '\\2705';
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      background: #10B981;
+      color: #fff;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      font-size: 11px;
+      line-height: 18px;
+      text-align: center;
+      border: 2px solid #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
     .marker-dest {
       width: 24px !important;
       height: 24px !important;
@@ -99,23 +116,25 @@ export const LEAFLET_MAP_HTML = `<!DOCTYPE html>
       .replace(/'/g, '&#39;');
   }
 
-  function selfIcon(pictureUrl) {
+  function selfIcon(pictureUrl, arrivedAt) {
     const imgTag = pictureUrl
       ? '<img src="' + escapeAttr(pictureUrl) + '" onerror="this.style.display=\\'none\\'" />'
       : '';
+    const arrivedClass = arrivedAt ? ' arrived' : '';
     return L.divIcon({
-      html: '<div class="marker-avatar self">' + imgTag + '</div>',
+      html: '<div class="marker-avatar self' + arrivedClass + '">' + imgTag + '</div>',
       className: '',
       iconSize: [44, 44],
       iconAnchor: [22, 22]
     });
   }
-  function memberIcon(pictureUrl) {
+  function memberIcon(pictureUrl, arrivedAt) {
     const imgTag = pictureUrl
       ? '<img src="' + escapeAttr(pictureUrl) + '" onerror="this.style.display=\\'none\\'" />'
       : '';
+    const arrivedClass = arrivedAt ? ' arrived' : '';
     return L.divIcon({
-      html: '<div class="marker-avatar member">' + imgTag + '</div>',
+      html: '<div class="marker-avatar member' + arrivedClass + '">' + imgTag + '</div>',
       className: '',
       iconSize: [38, 38],
       iconAnchor: [19, 19]
@@ -138,7 +157,7 @@ export const LEAFLET_MAP_HTML = `<!DOCTYPE html>
 
       // Self
       if (data.self && Number.isFinite(data.self.lat) && Number.isFinite(data.self.lng)) {
-        L.marker([data.self.lat, data.self.lng], { icon: selfIcon(data.self.pictureUrl) })
+        L.marker([data.self.lat, data.self.lng], { icon: selfIcon(data.self.pictureUrl, data.self.arrivedAt) })
           .bindPopup('\\u0E04\\u0E38\\u0E13').addTo(layer);
         points.push([data.self.lat, data.self.lng]);
       }
@@ -146,7 +165,7 @@ export const LEAFLET_MAP_HTML = `<!DOCTYPE html>
       // Members
       (data.members || []).forEach(function(m) {
         if (Number.isFinite(m.lat) && Number.isFinite(m.lng)) {
-          L.marker([m.lat, m.lng], { icon: memberIcon(m.pictureUrl) })
+          L.marker([m.lat, m.lng], { icon: memberIcon(m.pictureUrl, m.arrivedAt) })
             .bindPopup(m.name || '\\u0E2A\\u0E21\\u0E32\\u0E0A\\u0E34\\u0E01').addTo(layer);
           points.push([m.lat, m.lng]);
         }

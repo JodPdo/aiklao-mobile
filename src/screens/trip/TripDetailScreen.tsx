@@ -105,6 +105,13 @@ function formatDuration(seconds: number): string {
   return `${h} ชม. ${m} นาที`;
 }
 
+// Phase 6.5 — HH:MM in Bangkok time for the arrival timestamp
+function fmtTimeHHMM(iso: string): string {
+  return new Date(iso).toLocaleTimeString('th-TH', {
+    timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit', hour12: false,
+  });
+}
+
 function formatRelativeTime(iso: string): string {
   const age = Date.now() - new Date(iso).getTime();
   const sec = Math.floor(age / 1000);
@@ -558,6 +565,18 @@ export function TripDetailScreen() {
         {/* Members section */}
         <Text style={styles.sectionTitle}>สมาชิก ({data.members.length})</Text>
 
+        {/* Phase 6.5 — arrival summary (parent-owned, above the member list) */}
+        {data.members.length > 0 && (() => {
+          const arrivedCount = data.members.filter(m => m.arrivedAt).length;
+          const totalCount = data.members.length;
+          const summaryText = arrivedCount === totalCount
+            ? `✅ ทุกคนถึงจุดหมายแล้ว (${totalCount})`
+            : `🚗 ถึงแล้ว ${arrivedCount}/${totalCount} · ยังไม่ถึง ${totalCount - arrivedCount}`;
+          return arrivedCount > 0
+            ? <Text style={styles.arrivalSummary}>{summaryText}</Text>
+            : null;
+        })()}
+
         {powerSave ? (
           // Saver mode: vertical card list
           // TODO(Phase 5.5+): sort by battery low→high when other members' battery is available
@@ -603,6 +622,13 @@ export function TripDetailScreen() {
                     <View style={styles.statPill}>
                       <Text style={styles.statPillText}>{memberStatusLabel(m)}</Text>
                     </View>
+                    {m.arrivedAt && (
+                      <View style={styles.statPill}>
+                        <Text style={[styles.statPillText, styles.arrivedBadge]}>
+                          ✅ ถึงเมื่อ {fmtTimeHHMM(m.arrivedAt)}
+                        </Text>
+                      </View>
+                    )}
                   </View>
                 </View>
               );
@@ -632,6 +658,11 @@ export function TripDetailScreen() {
                 >
                   {memberStatusLabel(member)}
                 </Text>
+                {member.arrivedAt && (
+                  <Text style={styles.arrivedBadge} numberOfLines={1}>
+                    ✅ {fmtTimeHHMM(member.arrivedAt)}
+                  </Text>
+                )}
               </View>
             ))}
           </ScrollView>
@@ -813,6 +844,23 @@ function makeStyles(c: Palette) {
       textTransform: 'uppercase',
       letterSpacing: 0.5,
       marginBottom: spacing.sm,
+    },
+
+    // Phase 6.5 — arrival summary + per-member badge
+    arrivalSummary: {
+      ...typography.body,
+      color: c.textPrimary,
+      fontWeight: '600',
+      padding: spacing.md,
+      backgroundColor: c.surface,
+      borderRadius: radius.md,
+      marginBottom: spacing.md,
+    },
+    arrivedBadge: {
+      ...typography.caption,
+      color: '#10B981',
+      fontWeight: '600',
+      marginTop: 2,
     },
 
     // Default members: horizontal compact scroll

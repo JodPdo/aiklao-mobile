@@ -12,6 +12,7 @@ export interface LeafletPoint {
   lng: number;
   name?: string;
   pictureUrl?: string;
+  arrivedAt?: string | null;   // Phase 6.5 — ISO timestamp when arrived (badge)
 }
 
 export interface SosMarker {

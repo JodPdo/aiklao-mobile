@@ -181,7 +181,13 @@ export function MapScreen({ route }: MapScreenProps) {
 
   const mapData: LeafletData = {
     self: selfMarkerCoords
-      ? { lat: selfMarkerCoords.lat, lng: selfMarkerCoords.lng, name: 'คุณ', pictureUrl: selfPictureUrl }
+      ? {
+          lat: selfMarkerCoords.lat,
+          lng: selfMarkerCoords.lng,
+          name: 'คุณ',
+          pictureUrl: selfPictureUrl,
+          arrivedAt: selfMember?.arrivedAt ?? null,   // Phase 6.5
+        }
       : undefined,
     members: (tripData?.members ?? [])
       .filter((m) => m.lineUserId !== user?.lineUserId)
@@ -192,6 +198,7 @@ export function MapScreen({ route }: MapScreenProps) {
         lng: m.lastLocation!.lng,
         name: m.displayName,
         pictureUrl: m.pictureUrl || undefined,
+        arrivedAt: m.arrivedAt ?? null,               // Phase 6.5
       })),
     destination: tripData?.trip?.destination != null
       ? {
