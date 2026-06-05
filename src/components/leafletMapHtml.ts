@@ -103,6 +103,16 @@ export const LEAFLET_MAP_HTML = `<!DOCTYPE html>
     attribution: '© OpenStreetMap contributors'
   }).addTo(map);
 
+  // Phase 6.1B — emit tap coords back to RN (consumed by DestinationPicker;
+  // MapScreen has no 'mapTap' handler so it safely ignores these).
+  map.on('click', function(e) {
+    if (window.ReactNativeWebView) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({
+        type: 'mapTap', lat: e.latlng.lat, lng: e.latlng.lng
+      }));
+    }
+  });
+
   // Marker layer group — clear all + redraw on update
   let layer = L.layerGroup().addTo(map);
 

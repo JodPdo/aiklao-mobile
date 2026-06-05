@@ -1,12 +1,15 @@
 // src/screens/trip/CreateTripScreen.tsx
 // Journey creation form — user provides trip name + destination before tracking begins.
 // Phase 6.0: F1 flow (auto-start background tracking on submit).
+// Phase 6.1B: destination chosen via DestinationPicker (tap-to-pick map). The old
+//   text-coord inputs + buggy "use current location" button are removed; the body
+//   sent to POST /start is now always either null or a complete { name, lat, lng }.
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import * as Location from 'expo-location';
+import type { RouteProp } from '@react-navigation/native';
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -18,58 +21,44 @@ import type { Palette } from '@/theme';
 import type { HomeStackParamList } from '@/navigation/types';
 
 type Nav = NativeStackNavigationProp<HomeStackParamList, 'CreateTrip'>;
+type CreateTripRoute = RouteProp<HomeStackParamList, 'CreateTrip'>;
+
+interface Destination { name: string; lat: number; lng: number; }
 
 export function CreateTripScreen() {
   const navigation = useNavigation<Nav>();
+  const route = useRoute<CreateTripRoute>();
   const { colors } = useTheme();
   const { user } = useAuth();
   const styles = makeStyles(colors);
 
   const [name, setName] = useState('');
-  const [destName, setDestName] = useState('');
-  const [destLat, setDestLat] = useState('');
-  const [destLng, setDestLng] = useState('');
-  const [showCoords, setShowCoords] = useState(false);
+  const [destination, setDestination] = useState<Destination | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [errors, setErrors] = useState<{ name?: string; destName?: string }>({});
+  const [errors, setErrors] = useState<{ name?: string }>({});
+
+  // Receive the picked destination back from DestinationPicker (params-merge)
+  useEffect(() => {
+    if (route.params?.selectedDestination) {
+      setDestination(route.params.selectedDestination);
+    }
+  }, [route.params?.selectedDestination]);
 
   function validate() {
     const errs: typeof errors = {};
     if (!name.trim()) errs.name = 'กรุณาใส่ชื่อทริป';
-    if (showCoords) {
-      if (destLat && isNaN(parseFloat(destLat))) errs.destName = 'พิกัด lat ไม่ถูกต้อง';
-      if (destLng && isNaN(parseFloat(destLng))) errs.destName = 'พิกัด lng ไม่ถูกต้อง';
-    }
     setErrors(errs);
     return Object.keys(errs).length === 0;
-  }
-
-  async function handleUseCurrent() {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('ต้องการสิทธิ์', 'อนุญาตการเข้าถึงตำแหน่งเพื่อใช้พิกัดปัจจุบัน');
-        return;
-      }
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      setDestLat(loc.coords.latitude.toFixed(6));
-      setDestLng(loc.coords.longitude.toFixed(6));
-      setShowCoords(true);
-    } catch (err: any) {
-      Alert.alert('ไม่สามารถดึงพิกัด', err?.message ?? 'ลองใหม่');
-    }
   }
 
   async function handleSubmit() {
     if (!validate()) return;
     setSubmitting(true);
     try {
+      // destination is always either null or a complete { name, lat, lng }
       const body = {
         name: name.trim(),
-        destination: destName.trim() ? {
-          name: destName.trim(),
-          ...(destLat && destLng ? { lat: parseFloat(destLat), lng: parseFloat(destLng) } : {}),
-        } : undefined,
+        destination: destination ?? undefined,
       };
 
       const res = await api.post<{ trip: { id: string } }>('/api/mobile/trips/start', body);
@@ -114,62 +103,32 @@ export function CreateTripScreen() {
             {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
           </View>
 
-          {/* Destination Name (OPTIONAL in V1) */}
+          {/* Destination — tap-to-pick map (Phase 6.1B) */}
           <View style={styles.field}>
             <Text style={styles.label}>จุดหมาย <Text style={styles.optional}>(ไม่บังคับ)</Text></Text>
-            <TextInput
-              style={[styles.input, errors.destName && styles.inputError]}
-              value={destName}
-              onChangeText={setDestName}
-              placeholder="เช่น ดอยสุเทพ"
-              placeholderTextColor={colors.textSecondary}
-              maxLength={120}
-            />
-            {errors.destName && <Text style={styles.errorText}>{errors.destName}</Text>}
+            {destination ? (
+              <View style={styles.destCard}>
+                <Text style={styles.destName}>📍 {destination.name}</Text>
+                <Text style={styles.destCoords}>
+                  {destination.lat.toFixed(5)}, {destination.lng.toFixed(5)}
+                </Text>
+                <Button
+                  label="เปลี่ยนจุดหมาย"
+                  variant="ghost"
+                  onPress={() => navigation.navigate('DestinationPicker')}
+                  fullWidth
+                  style={{ marginTop: spacing.sm }}
+                />
+              </View>
+            ) : (
+              <Button
+                label="📍 เลือกจุดหมายบนแผนที่"
+                variant="ghost"
+                onPress={() => navigation.navigate('DestinationPicker')}
+                fullWidth
+              />
+            )}
           </View>
-
-          {/* Use Current Location button */}
-          <Button
-            label={destLat ? `📍 พิกัด: ${destLat.slice(0, 9)}, ${destLng.slice(0, 9)}` : '📍 ใช้พิกัดปัจจุบันเป็นจุดหมาย'}
-            variant="ghost"
-            onPress={handleUseCurrent}
-            fullWidth
-            style={{ marginBottom: spacing.md }}
-          />
-
-          {/* Optional coordinates (toggle) */}
-          {showCoords && (
-            <View style={styles.coordsRow}>
-              <View style={[styles.field, { flex: 1, marginRight: spacing.sm }]}>
-                <Text style={styles.label}>Lat</Text>
-                <TextInput
-                  style={styles.input}
-                  value={destLat}
-                  onChangeText={setDestLat}
-                  keyboardType="decimal-pad"
-                  placeholder="13.7563"
-                  placeholderTextColor={colors.textSecondary}
-                />
-              </View>
-              <View style={[styles.field, { flex: 1 }]}>
-                <Text style={styles.label}>Lng</Text>
-                <TextInput
-                  style={styles.input}
-                  value={destLng}
-                  onChangeText={setDestLng}
-                  keyboardType="decimal-pad"
-                  placeholder="100.5018"
-                  placeholderTextColor={colors.textSecondary}
-                />
-              </View>
-            </View>
-          )}
-
-          {!showCoords && (
-            <Text style={styles.hint}>
-              💡 พิกัดสามารถเลือกจากแผนที่ได้ใน Phase 6.1
-            </Text>
-          )}
         </ScrollView>
 
         {/* Submit button (sticky bottom) */}
@@ -208,8 +167,15 @@ function makeStyles(c: Palette) {
     },
     inputError: { borderColor: c.danger },
     errorText: { ...typography.caption, color: c.danger, marginTop: spacing.xs },
-    coordsRow: { flexDirection: 'row' },
-    hint: { ...typography.caption, color: c.textSecondary, fontStyle: 'italic', marginTop: spacing.sm },
+    destCard: {
+      backgroundColor: c.surface,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: radius.md,
+      padding: spacing.md,
+    },
+    destName: { ...typography.body, color: c.textPrimary, fontWeight: '600' },
+    destCoords: { ...typography.caption, color: c.textSecondary, marginTop: 2 },
     actionBar: {
       paddingHorizontal: spacing.lg,
       paddingTop: spacing.md,

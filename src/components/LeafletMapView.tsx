@@ -33,9 +33,10 @@ export interface LeafletData {
 interface Props {
   data: LeafletData;
   style?: any;
+  onMapTap?: (lat: number, lng: number) => void;   // Phase 6.1B — destination picker
 }
 
-export function LeafletMapView({ data, style }: Props) {
+export function LeafletMapView({ data, style, onMapTap }: Props) {
   const webviewRef = useRef<WebView>(null);
   // Checkpoint B: state-based readiness so effect dependency works correctly
   const [webReady, setWebReady] = useState(false);
@@ -57,8 +58,9 @@ export function LeafletMapView({ data, style }: Props) {
       const msg = JSON.parse(event.nativeEvent.data);
       if (msg.type === 'ready') {
         setWebReady(true);
+      } else if (msg.type === 'mapTap' && onMapTap) {
+        onMapTap(msg.lat, msg.lng);   // Phase 6.1B — destination picker
       }
-      // Future: msg.type === 'mapClick' for Phase 6.1B (tap-to-pick destination)
     } catch {}
   }
 
