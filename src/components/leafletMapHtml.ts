@@ -48,6 +48,31 @@ export const LEAFLET_MAP_HTML = `<!DOCTYPE html>
       text-align: center;
       line-height: 24px;
     }
+    .marker-sos {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      border: 4px solid #fff;
+      background: #DC2626;
+      box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.5),
+                  0 0 20px rgba(220, 38, 38, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      color: white;
+      animation: sos-pulse 1.0s ease-in-out infinite;
+    }
+    @keyframes sos-pulse {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.5), 0 0 20px rgba(220, 38, 38, 0.9);
+      }
+      50% {
+        transform: scale(1.2);
+        box-shadow: 0 0 0 12px rgba(220, 38, 38, 0.2), 0 0 30px rgba(220, 38, 38, 1);
+      }
+    }
   </style>
 </head>
 <body>
@@ -99,6 +124,10 @@ export const LEAFLET_MAP_HTML = `<!DOCTYPE html>
   function destIcon() {
     return L.divIcon({ className: 'marker-dest', html: '\\uD83C\\uDFAF', iconSize: [24, 24], iconAnchor: [12, 24] });
   }
+  function sosIcon() {
+    // Emoji-first for max visibility — identity shown in popup, not marker
+    return L.divIcon({ html: '<div class="marker-sos">\\uD83D\\uDEA8</div>', className: '', iconSize: [56, 56], iconAnchor: [28, 28] });
+  }
 
   // Receives data from React Native via injectJavaScript
   window.updateMap = function(payload) {
@@ -129,6 +158,16 @@ export const LEAFLET_MAP_HTML = `<!DOCTYPE html>
           .bindPopup(data.destination.name || '\\u0E08\\u0E38\\u0E14\\u0E2B\\u0E21\\u0E32\\u0E22').addTo(layer);
         points.push([data.destination.lat, data.destination.lng]);
       }
+
+      // SOS markers (rendered ABOVE all regular markers via zIndexOffset)
+      (data.sosMarkers || []).forEach(function(s) {
+        if (Number.isFinite(s.lat) && Number.isFinite(s.lng)) {
+          L.marker([s.lat, s.lng], { icon: sosIcon(), zIndexOffset: 1000 })
+            .bindPopup('\\uD83D\\uDEA8 ' + escapeAttr(s.name || '\\u0E2A\\u0E21\\u0E32\\u0E0A\\u0E34\\u0E01') + ' \\u2022 ' + escapeAttr(s.timeHHMM || ''))
+            .addTo(layer);
+          points.push([s.lat, s.lng]);
+        }
+      });
 
       // Auto-fit bounds
       if (points.length > 1) {

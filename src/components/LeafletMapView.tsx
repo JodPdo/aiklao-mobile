@@ -14,10 +14,19 @@ export interface LeafletPoint {
   pictureUrl?: string;
 }
 
+export interface SosMarker {
+  id: string;
+  lat: number;
+  lng: number;
+  name?: string;        // displayName of sender
+  timeHHMM?: string;    // pre-formatted "13:22"
+}
+
 export interface LeafletData {
   self?: LeafletPoint;
   members?: Array<LeafletPoint & { id: string }>;
   destination?: LeafletPoint;
+  sosMarkers?: SosMarker[];   // Phase 6.2
 }
 
 interface Props {
