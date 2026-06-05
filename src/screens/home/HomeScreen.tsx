@@ -1,15 +1,15 @@
 // src/screens/home/HomeScreen.tsx
 import React, { useCallback, useState } from 'react';
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Location from 'expo-location';
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
+import { ActiveTripCard } from '@/components/ActiveTripCard';
 import { useAuth } from '@/auth/AuthContext';
-import { api } from '@/api/client';
+import { listTrips, type TripSummary } from '@/api/client';
 import {
-  startBackgroundTracking,
   stopBackgroundTracking,
   getActiveTripId,
 } from '@/services/locationTask';
@@ -21,12 +21,6 @@ import type { HomeStackParamList } from '@/navigation/types';
 
 type HomeNavProp = NativeStackNavigationProp<HomeStackParamList, 'HomeMain'>;
 
-interface TripSummary {
-  id: string;
-  name: string;
-  status: string;
-}
-
 type BgPermStatus = 'checking' | 'granted' | 'denied' | 'undetermined';
 
 export function HomeScreen() {
@@ -37,24 +31,29 @@ export function HomeScreen() {
   const [bgPermStatus, setBgPermStatus] = useState<BgPermStatus>('checking');
   const styles = makeStyles(colors);
 
+  // Refetch active trips every time the screen comes into focus (handles
+  // back-from-MapScreen, Stop Trip → Home, etc.).
   useFocusEffect(
     useCallback(() => {
       let mounted = true;
 
       async function loadActive() {
         try {
-          const res = await api.get<{ trips: TripSummary[] }>('/api/mobile/trips');
+          const all = await listTrips();
           if (mounted) {
-            const trips = res.data.trips.filter(t => t.status === 'active');
+            const trips = all.filter((t) => t.status === 'active');
             setActiveTrips(trips);
 
+            // Stale-tracking cleanup: if the background task points at a trip
+            // that's no longer active, tear it down.
             const storedId = await getActiveTripId();
-            if (storedId && !trips.find(t => t.id === storedId)) {
+            if (storedId && !trips.find((t) => t.id === storedId)) {
               await stopBackgroundTracking();
             }
           }
         } catch (err: any) {
           if (err?.response?.status === 401) return;
+          if (mounted) setActiveTrips([]); // defensive — empty, never null
         }
 
         if (!mounted) return;
@@ -85,14 +84,6 @@ export function HomeScreen() {
     navigation.navigate('CreateTrip');
   }
 
-  function handleResume() {
-    if (activeTrips.length === 1) {
-      navigation.navigate('MapScreen', { tripId: activeTrips[0].id });
-    } else {
-      (navigation.getParent() as any)?.navigate('Trips');
-    }
-  }
-
   function handleBgGranted() {
     setBgPermStatus('granted');
   }
@@ -109,59 +100,41 @@ export function HomeScreen() {
         Ready for a trip today?{/* TODO(thai) */}
       </Text>
 
-      <View style={styles.card}>
-        {hasActive ? (
-          <>
-            {activeTrips.length === 1 && (
-              <TouchableOpacity
-                style={styles.detailChevron}
-                onPress={() => navigation.navigate('TripDetail', { tripId: activeTrips[0].id })}
-              >
-                <Text style={styles.chevronText}>›</Text>
-              </TouchableOpacity>
-            )}
-            <Text style={styles.cardTitle}>
-              {activeTrips.length === 1
-                ? 'Trip in progress' // TODO(thai)
-                : `${activeTrips.length} active trips` // TODO(thai)
-              }
-            </Text>
-            <Text style={styles.cardBody}>
-              {activeTrips.length === 1
-                ? activeTrips[0].name
-                : 'Tap Resume to continue one of your active trips.' // TODO(thai)
-              }
-            </Text>
-            <Button
-              label="Resume Trip" // TODO(thai)
-              onPress={handleResume}
-              fullWidth
-              style={{ marginTop: spacing.lg }}
+      {hasActive ? (
+        <>
+          {/* One card per active trip — each opens its own MapScreen (Phase 6.2.5) */}
+          {activeTrips.map((trip) => (
+            <ActiveTripCard
+              key={trip.id}
+              tripId={String(trip.id)}
+              name={trip.name}
+              memberCount={trip.memberCount}
+              onPress={() => navigation.navigate('MapScreen', { tripId: String(trip.id) })}
             />
-            <Button
-              label="Start New Trip" // TODO(thai)
-              variant="secondary"
-              onPress={handleStartNewTrip}
-              fullWidth
-              style={{ marginTop: spacing.sm }}
-            />
-          </>
-        ) : (
-          <>
-            <Text style={styles.cardTitle}>No active trip{/* TODO(thai) */}</Text>
-            <Text style={styles.cardBody}>
-              Tap &quot;Start New Trip&quot; to begin tracking your location.
-              {/* TODO(thai) */}
-            </Text>
-            <Button
-              label="Start New Trip" // TODO(thai)
-              onPress={handleStartNewTrip}
-              fullWidth
-              style={{ marginTop: spacing.lg }}
-            />
-          </>
-        )}
-      </View>
+          ))}
+          <Button
+            label="Start New Trip" // TODO(thai)
+            variant="secondary"
+            onPress={handleStartNewTrip}
+            fullWidth
+            style={{ marginTop: spacing.sm }}
+          />
+        </>
+      ) : (
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>No active trip{/* TODO(thai) */}</Text>
+          <Text style={styles.cardBody}>
+            Tap &quot;Start New Trip&quot; to begin tracking your location.
+            {/* TODO(thai) */}
+          </Text>
+          <Button
+            label="Start New Trip" // TODO(thai)
+            onPress={handleStartNewTrip}
+            fullWidth
+            style={{ marginTop: spacing.lg }}
+          />
+        </View>
+      )}
 
       {showBgPrompt && (
         <BackgroundPermissionPrompt
@@ -191,16 +164,6 @@ function makeStyles(c: Palette) {
       padding: spacing.lg,
       borderWidth: 1,
       borderColor: c.border,
-    },
-    detailChevron: {
-      position: 'absolute',
-      top: spacing.sm,
-      right: spacing.sm,
-      padding: spacing.xs,
-    },
-    chevronText: {
-      fontSize: 24,
-      color: c.textSecondary,
     },
     cardTitle: {
       ...typography.h3,

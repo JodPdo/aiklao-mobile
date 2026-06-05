@@ -88,3 +88,21 @@ export async function cancelSos(tripId: string, sosId: string): Promise<{ cancel
   );
   return { cancelledAt: res.data.cancelledAt };
 }
+
+// ─── Phase 6.2.5 — trip listing (active trip entry on HomeScreen) ────────────
+
+export interface TripSummary {
+  id: string;
+  name: string;
+  status: string;              // 'active' | 'archived' (verified — NOT 'in_progress')
+  createdAt: string;
+  memberCount?: number;
+  isLeader?: boolean;
+  lastLocationAt?: string | null;
+}
+
+/** GET /api/mobile/trips — returns all of the caller's trips (active + archived). */
+export async function listTrips(): Promise<TripSummary[]> {
+  const res = await api.get<{ trips: TripSummary[] }>('/api/mobile/trips');
+  return res.data.trips ?? [];   // defensive: never null/undefined
+}
