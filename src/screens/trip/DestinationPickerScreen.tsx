@@ -48,11 +48,9 @@ export function DestinationPickerScreen() {
     return () => { mounted = false; };
   }, []);
 
-  // self = current GPS (reference), destination = tapped pin
+  // self omitted — this screen focuses on destination only (the green self
+  // marker read as a destination pin). Only the tapped destination is shown.
   const mapData: LeafletData = {
-    self: defaultCenter
-      ? { lat: defaultCenter.lat, lng: defaultCenter.lng, name: 'คุณ' }
-      : undefined,
     destination: selectedCoords
       ? { lat: selectedCoords.lat, lng: selectedCoords.lng, name: destName }
       : undefined,
@@ -85,16 +83,19 @@ export function DestinationPickerScreen() {
   return (
     <Screen padded={false} style={styles.flex}>
       <View style={styles.instruction}>
-        <Text style={styles.instructionText}>แตะที่แผนที่เพื่อปักหมุดจุดหมาย</Text>
+        <Text style={styles.instructionText}>💡 แตะแผนที่เพื่อเลือกจุดหมาย</Text>
       </View>
 
       <LeafletMapView data={mapData} style={styles.map} onMapTap={handleMapTap} />
 
       {selectedCoords && (
         <View style={styles.form}>
-          <Text style={styles.coords}>
-            📍 {selectedCoords.lat.toFixed(5)}, {selectedCoords.lng.toFixed(5)}
-          </Text>
+          <View style={styles.coordsCard}>
+            <Text style={styles.coordsLabel}>ตำแหน่งที่เลือก</Text>
+            <Text style={styles.coordsValue}>
+              {selectedCoords.lat.toFixed(5)}, {selectedCoords.lng.toFixed(5)}
+            </Text>
+          </View>
           <Text style={styles.label}>ชื่อจุดหมาย</Text>
           <TextInput
             style={styles.input}
@@ -126,7 +127,9 @@ export function DestinationPickerScreen() {
 
 function makeStyles(c: Palette) {
   return StyleSheet.create({
-    flex: { flex: 1, backgroundColor: c.background },
+    // White surfaces throughout (c.surface = #FFFFFF). c.background is the
+    // theme's pink base — intentionally avoided here so the picker reads clean.
+    flex: { flex: 1, backgroundColor: c.surface },
     loading: {
       ...typography.body,
       textAlign: 'center',
@@ -139,7 +142,11 @@ function makeStyles(c: Palette) {
       borderBottomWidth: 1,
       borderBottomColor: c.border,
     },
-    instructionText: { ...typography.caption, color: c.textSecondary },
+    instructionText: {
+      ...typography.caption,
+      color: c.textSecondary,
+      textAlign: 'center',
+    },
     map: { flex: 1 },
     form: {
       padding: spacing.md,
@@ -147,7 +154,24 @@ function makeStyles(c: Palette) {
       borderTopWidth: 1,
       borderTopColor: c.border,
     },
-    coords: { ...typography.caption, color: c.textSecondary, marginBottom: spacing.sm },
+    coordsCard: {
+      padding: spacing.md,
+      backgroundColor: c.surface,
+      borderRadius: radius.md,
+      marginBottom: spacing.md,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    coordsLabel: {
+      ...typography.caption,
+      color: c.textSecondary,
+      marginBottom: 4,
+    },
+    coordsValue: {
+      ...typography.body,
+      color: c.textPrimary,
+      fontFamily: 'monospace',
+    },
     label: { ...typography.caption, color: c.textPrimary, marginBottom: 4 },
     input: {
       ...typography.body,
@@ -157,7 +181,7 @@ function makeStyles(c: Palette) {
       borderRadius: radius.md,
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.sm,
-      backgroundColor: c.background,
+      backgroundColor: c.surface,
     },
     footer: {
       flexDirection: 'row',
