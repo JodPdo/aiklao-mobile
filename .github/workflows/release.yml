@@ -1,0 +1,70 @@
+name: Release APK
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # required for creating GitHub Release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build APK on EAS (wait for completion)
+        id: build
+        run: |
+          set -e
+          BUILD_JSON=$(eas build --platform android --profile production --non-interactive --json --wait)
+          echo "$BUILD_JSON" | jq .
+          # Extract APK URL (try common field paths)
+          APK_URL=$(echo "$BUILD_JSON" | jq -r '.[0].artifacts.applicationArchiveUrl // .[0].artifacts.buildUrl // empty')
+          if [ -z "$APK_URL" ]; then
+            echo "Error: could not extract APK URL from build output"
+            exit 1
+          fi
+          echo "apk_url=$APK_URL" >> $GITHUB_OUTPUT
+          BUILD_ID=$(echo "$BUILD_JSON" | jq -r '.[0].id // empty')
+          echo "build_id=$BUILD_ID" >> $GITHUB_OUTPUT
+
+      - name: Download APK
+        run: |
+          curl -L -o AiKlao-${{ github.ref_name }}.apk "${{ steps.build.outputs.apk_url }}"
+          ls -lh *.apk
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: AiKlao Mobile ${{ github.ref_name }}
+          body: |
+            ## AiKlao Mobile ${{ github.ref_name }}
+
+            **Install:** Download the APK below → install on Android (enable "Unknown sources" if prompted).
+
+            **Build:** EAS Build ${{ steps.build.outputs.build_id }}
+            **Commit:** ${{ github.sha }}
+            **Built:** ${{ github.run_started_at }}
+          files: AiKlao-${{ github.ref_name }}.apk
+          draft: false
+          prerelease: false
