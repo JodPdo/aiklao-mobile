@@ -19,7 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
 import { LivePulseDot } from '@/components/LivePulseDot';
-import { MiniMapPlaceholder } from '@/components/MiniMapPlaceholder';
+import { LeafletMapView } from '@/components/LeafletMapView';
 import { InviteMembersModal } from '@/components/InviteMembersModal';
 import { useAuth } from '@/auth/AuthContext';
 import { api } from '@/api/client';
@@ -530,16 +530,29 @@ export function TripDetailScreen() {
           )}
         </View>
 
-        {/* Mini-map: default mode only */}
+        {/* Mini-map: default mode only — real Leaflet (Phase 6.1A component) */}
         {!powerSave && (
-          <MiniMapPlaceholder
-            members={data.members.map(m => ({
-              id: m.id,
-              lineUserId: m.lineUserId,
-              hasLocation: m.lastLocation !== null,
-              color: avatarColor(m.lineUserId),
-              char: avatarChar(m.displayName),
-            }))}
+          <LeafletMapView
+            data={{
+              members: data.members
+                .filter(m => m.lastLocation)
+                .map(m => ({
+                  id: m.id,
+                  lat: m.lastLocation!.lat,
+                  lng: m.lastLocation!.lng,
+                  name: m.displayName,
+                  pictureUrl: m.pictureUrl || undefined,
+                  arrivedAt: m.arrivedAt,
+                })),
+              destination: data.trip.destination
+                ? {
+                    lat: data.trip.destination.lat,
+                    lng: data.trip.destination.lng,
+                    name: data.trip.destination.name,
+                  }
+                : undefined,
+            }}
+            style={{ height: 180, marginVertical: spacing.md, borderRadius: radius.md }}
           />
         )}
 
@@ -547,7 +560,7 @@ export function TripDetailScreen() {
         {isEmpty && !powerSave && (
           <View style={styles.ctaBanner}>
             <Text style={styles.ctaBannerText}>
-              ใช้แอป AiKlao Mobile — การแชร์ตำแหน่งต้องเปิดผ่านแอปเท่านั้น
+              ยังไม่มีใครแชร์ตำแหน่ง — กด "📍 เริ่มแชร์ตำแหน่ง" ด้านล่างเพื่อเริ่ม
             </Text>
           </View>
         )}
@@ -677,7 +690,7 @@ export function TripDetailScreen() {
       {!isArchived && (
         <View style={[styles.actionBar, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
           {isEmpty ? (
-            <Button label="เปิดแอป AiKlao" fullWidth onPress={() => {}} />
+            <Button label="📍 เริ่มแชร์ตำแหน่ง" fullWidth onPress={handleShareLocation} />
           ) : isSharing ? (
             <Button label="กำลังแชร์อยู่" fullWidth disabled />
           ) : (
