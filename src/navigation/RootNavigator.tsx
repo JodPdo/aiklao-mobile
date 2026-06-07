@@ -6,10 +6,13 @@ import { AuthNavigator } from './AuthNavigator';
 import { AppNavigator } from './AppNavigator';
 import { registerUnauthorizedHandler } from '@/api/client';
 import { useTheme } from '@/theme/ThemeProvider';
+import { navigationRef } from './navigationRef';
+import { useInviteDeepLink } from '@/hooks/useInviteDeepLink';
 
 export function RootNavigator() {
   const { status, signOut } = useAuth();
   const { colors } = useTheme();
+  const { onNavigationReady } = useInviteDeepLink();
 
   useEffect(() => {
     registerUnauthorizedHandler(() => {
@@ -33,7 +36,7 @@ export function RootNavigator() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef} onReady={onNavigationReady}>
       {status === 'authenticated' ? <AppNavigator /> : <AuthNavigator />}
     </NavigationContainer>
   );

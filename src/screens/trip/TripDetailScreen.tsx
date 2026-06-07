@@ -20,6 +20,7 @@ import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
 import { LivePulseDot } from '@/components/LivePulseDot';
 import { MiniMapPlaceholder } from '@/components/MiniMapPlaceholder';
+import { InviteMembersModal } from '@/components/InviteMembersModal';
 import { useAuth } from '@/auth/AuthContext';
 import { api } from '@/api/client';
 import {
@@ -294,6 +295,7 @@ export function TripDetailScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTripId, setActiveTripId] = useState<string | null>(null);
+  const [showInvite, setShowInvite] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -681,6 +683,15 @@ export function TripDetailScreen() {
           ) : (
             <Button label="แชร์ตำแหน่ง" fullWidth onPress={handleShareLocation} />
           )}
+          {callerMember?.isLeader && (
+            <Button
+              label="👥 เชิญเพื่อน"
+              variant="secondary"
+              fullWidth
+              onPress={() => setShowInvite(true)}
+              style={{ marginTop: spacing.sm }}
+            />
+          )}
           <Button
             label="จบทริป"
             variant={canStop ? 'danger' : 'secondary'}
@@ -691,6 +702,13 @@ export function TripDetailScreen() {
           />
         </View>
       )}
+
+      <InviteMembersModal
+        visible={showInvite}
+        tripId={tripId}
+        tripName={data.trip.name}
+        onClose={() => setShowInvite(false)}
+      />
     </Screen>
   );
 }

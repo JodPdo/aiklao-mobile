@@ -106,3 +106,55 @@ export async function listTrips(): Promise<TripSummary[]> {
   const res = await api.get<{ trips: TripSummary[] }>('/api/mobile/trips');
   return res.data.trips ?? [];   // defensive: never null/undefined
 }
+
+// ─── Phase 6.4c — invite links (backend contract: aiklao_mb_local v0.1.26) ───
+// NOTE: live backend uses SINGULAR paths /trips/:id/invite (create) and
+// /invite/:token/join (redeem) — NOT the /invites/.../accept the design doc
+// drafted. Backend is already deployed and must not change, so the client
+// matches the live contract.
+
+export interface InviteResponse {
+  ok: boolean;
+  token: string;
+  code: string;
+  link: string;
+  expires_at: string;
+  redeemed_count: number;
+}
+
+/** POST /api/mobile/trips/:tripId/invite — leader-only. Creates or reuses the active invite. */
+export async function createInvite(tripId: string): Promise<InviteResponse> {
+  const res = await api.post<InviteResponse>(`/api/mobile/trips/${tripId}/invite`, {});
+  return res.data;
+}
+
+export type AcceptInviteResult =
+  | { kind: 'joined'; tripId: string; tripName: string }
+  | { kind: 'already'; tripId: string; tripName: string }
+  | { kind: 'expired' }
+  | { kind: 'notfound' }
+  | { kind: 'error' };
+
+/**
+ * POST /api/mobile/invite/:token/join — redeem a token, become a member.
+ * Maps the backend's status codes to a discriminated result so callers don't
+ * touch axios internals (mirrors triggerSos's error-mapping style).
+ */
+export async function acceptInvite(token: string): Promise<AcceptInviteResult> {
+  try {
+    const res = await api.post<{
+      ok: boolean; trip_id: string | number; trip_name: string; was_already_member: boolean;
+    }>(`/api/mobile/invite/${token}/join`, {});
+    const d = res.data;
+    return {
+      kind: d.was_already_member ? 'already' : 'joined',
+      tripId: String(d.trip_id),
+      tripName: d.trip_name,
+    };
+  } catch (e) {
+    const status = (e as AxiosError).response?.status;
+    if (status === 410) return { kind: 'expired' };
+    if (status === 404) return { kind: 'notfound' };
+    return { kind: 'error' };
+  }
+}
