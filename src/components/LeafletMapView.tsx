@@ -35,9 +35,14 @@ interface Props {
   style?: any;
   onMapTap?: (lat: number, lng: number) => void;   // Phase 6.1B — destination picker
   center?: { lat: number; lng: number; zoom?: number };   // optional initial center (overrides Bangkok fallback)
+  // On-demand recenter (e.g. a "◎" button): bump `recenterToken` to re-center
+  // onto `recenterTo`. Separate from `center` so it does NOT re-fire on every
+  // data poll — auto-fit behavior for callers that omit both is unchanged.
+  recenterTo?: { lat: number; lng: number; zoom?: number };
+  recenterToken?: number;
 }
 
-export function LeafletMapView({ data, style, onMapTap, center }: Props) {
+export function LeafletMapView({ data, style, onMapTap, center, recenterTo, recenterToken }: Props) {
   const webviewRef = useRef<WebView>(null);
   // Checkpoint B: state-based readiness so effect dependency works correctly
   const [webReady, setWebReady] = useState(false);
@@ -65,6 +70,18 @@ export function LeafletMapView({ data, style, onMapTap, center }: Props) {
       true;
     `);
   }, [webReady, center?.lat, center?.lng]);
+
+  // On-demand recenter — fires only when recenterToken changes (button tap),
+  // not when recenterTo updates, so panning isn't yanked back on each poll.
+  useEffect(() => {
+    if (!webReady || recenterToken == null || !recenterTo) return;
+    const zoom = recenterTo.zoom ?? 15;
+    webviewRef.current?.injectJavaScript(`
+      window.setMapCenter(${recenterTo.lat}, ${recenterTo.lng}, ${zoom});
+      true;
+    `);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [webReady, recenterToken]);
 
   function onMessage(event: WebViewMessageEvent) {
     try {

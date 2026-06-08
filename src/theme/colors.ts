@@ -32,11 +32,14 @@ export const lightColors = {
   gray100:  '#F4F6F8',
   white:    '#FFFFFF',
 
-  // Surfaces — pink-cream palette (user-selected)
-  background:    '#FCD7E3',   // pink base
-  backgroundAlt: '#FCE3F5',   // lighter pink alt
-  surface:       '#FFFFFF',   // pure white cards — contrast on pink bg
-  border:        '#F0C7D5',   // pink-tinted border
+  // Surfaces — neutral page bg, white cards (Step 3b: was pink-cream)
+  // Semantics: background/backgroundAlt = neutral PAGE bg; surface = white CARD.
+  // Cards stay white (#FFF) so they read against the neutral page via a hairline
+  // border. Dark mode is intentionally NOT changed.
+  background:    '#F4F6F8',   // neutral light-gray page bg
+  backgroundAlt: '#EEF1F5',   // slightly deeper neutral (card-heavy screens — Home/Trips/Login)
+  surface:       '#FFFFFF',   // pure white cards — contrast on neutral bg via border
+  border:        '#D6DBE0',   // neutral light-gray border (Step 3c: was pink #F0C7D5)
 
   // Text
   textPrimary:   '#0F1419',

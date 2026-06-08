@@ -276,12 +276,12 @@ export function MapScreen({ route }: MapScreenProps) {
   function handleStop() {
     if (isStopping) return;
     Alert.alert(
-      'Stop trip?', // TODO(thai)
-      'This will end tracking and archive the trip.', // TODO(thai)
+      'จบทริป?',
+      'จะหยุดการติดตามตำแหน่งและจบทริปนี้',
       [
-        { text: 'Cancel', style: 'cancel' }, // TODO(thai)
+        { text: 'ยกเลิก', style: 'cancel' },
         {
-          text: 'Stop', // TODO(thai)
+          text: 'จบทริป',
           style: 'destructive',
           onPress: async () => {
             setIsStopping(true);
@@ -292,7 +292,7 @@ export function MapScreen({ route }: MapScreenProps) {
             } catch (err: any) {
               setIsStopping(false);
               if (err?.response?.status === 401) return;
-              Alert.alert('Could not stop trip', 'Try again.'); // TODO(thai)
+              Alert.alert('ไม่สามารถจบทริปได้', 'ลองอีกครั้ง');
             }
           },
         },
@@ -302,8 +302,8 @@ export function MapScreen({ route }: MapScreenProps) {
 
   const trackingLabel =
     bgGranted === null  ? null :
-    bgGranted           ? '🟢 Background tracking active' : // TODO(thai)
-                          '🟡 Foreground tracking only';    // TODO(thai)
+    bgGranted           ? '🟢 กำลังติดตามตำแหน่งแบบเบื้องหลัง' :
+                          '🟡 ติดตามตำแหน่งเฉพาะตอนเปิดแอป';
 
   return (
     <LocationPermissionGate>
@@ -346,7 +346,7 @@ export function MapScreen({ route }: MapScreenProps) {
             onPress={handleStop}
             disabled={isStopping}
           >
-            <Text style={styles.stopButtonText}>⏹ Stop</Text>
+            <Text style={styles.stopButtonText}>⏹ จบ</Text>
           </Pressable>
         </View>
       </View>
