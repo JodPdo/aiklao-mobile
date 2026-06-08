@@ -35,7 +35,7 @@ export function ActiveTripCard({
       </View>
 
       <Text style={styles.tripName} numberOfLines={1}>
-        Trip #{tripId} · {name}
+        {name}
       </Text>
 
       <View style={styles.metaRow}>
@@ -48,7 +48,7 @@ export function ActiveTripCard({
       </View>
 
       <View style={styles.cta}>
-        <Text style={styles.ctaText}>เปิดแผนที่ →</Text>
+        <Text style={styles.ctaText}>เปิดทริป →</Text>
       </View>
     </Pressable>
   );

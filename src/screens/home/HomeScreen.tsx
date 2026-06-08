@@ -109,7 +109,7 @@ export function HomeScreen() {
               tripId={String(trip.id)}
               name={trip.name}
               memberCount={trip.memberCount}
-              onPress={() => navigation.navigate('MapScreen', { tripId: String(trip.id) })}
+              onPress={() => navigation.navigate('TripDetail', { tripId: String(trip.id) })}
             />
           ))}
           <Button
