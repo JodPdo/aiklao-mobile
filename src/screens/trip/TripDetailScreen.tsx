@@ -689,30 +689,41 @@ export function TripDetailScreen() {
       {/* Sticky action buttons — Q9: hidden for archived */}
       {!isArchived && (
         <View style={[styles.actionBar, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
-          {isEmpty ? (
-            <Button label="📍 เริ่มแชร์ตำแหน่ง" fullWidth onPress={handleShareLocation} />
-          ) : isSharing ? (
-            <Button label="กำลังแชร์อยู่" fullWidth disabled />
-          ) : (
-            <Button label="แชร์ตำแหน่ง" fullWidth onPress={handleShareLocation} />
-          )}
-          {callerMember?.isLeader && (
+          <View style={styles.actionRow}>
+            {/* Share — primary action (flex 2), keeps its text label */}
+            {isSharing ? (
+              <Button
+                label="📍 กำลังแชร์"
+                disabled
+                style={{ ...styles.actionBtn, flex: 2 }}
+              />
+            ) : (
+              <Button
+                label="📍 แชร์ตำแหน่ง"
+                onPress={handleShareLocation}
+                style={{ ...styles.actionBtn, flex: 2 }}
+              />
+            )}
+
+            {/* Invite — leader only, icon-only (flex 1) */}
+            {callerMember?.isLeader && (
+              <Button
+                label="👥"
+                variant="secondary"
+                onPress={() => setShowInvite(true)}
+                style={{ ...styles.actionBtn, flex: 1 }}
+              />
+            )}
+
+            {/* End trip — danger, icon-only (flex 1) */}
             <Button
-              label="👥 เชิญเพื่อน"
-              variant="secondary"
-              fullWidth
-              onPress={() => setShowInvite(true)}
-              style={{ marginTop: spacing.sm }}
+              label="🏁"
+              variant={canStop ? 'danger' : 'secondary'}
+              disabled={!canStop}
+              onPress={handleEndTrip}
+              style={{ ...styles.actionBtn, flex: 1 }}
             />
-          )}
-          <Button
-            label="จบทริป"
-            variant={canStop ? 'danger' : 'secondary'}
-            fullWidth
-            disabled={!canStop}
-            onPress={handleEndTrip}
-            style={{ marginTop: spacing.sm }}
-          />
+          </View>
         </View>
       )}
 
@@ -976,6 +987,14 @@ function makeStyles(c: Palette) {
       paddingTop: spacing.md,
       borderTopWidth: 1,
       borderTopColor: c.border,
+    },
+    actionRow: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+    },
+    actionBtn: {
+      // Buttons sit in a row sized by flex; clear the default fullWidth stretch.
+      alignSelf: 'auto',
     },
 
     // Utility
