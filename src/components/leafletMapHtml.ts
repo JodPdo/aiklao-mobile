@@ -209,6 +209,15 @@ export const LEAFLET_MAP_HTML = `<!DOCTYPE html>
     }
   };
 
+  // Set the initial map center (called from RN when a \`center\` prop is provided).
+  // Overrides the Bangkok fallback view; consumers without \`center\` keep the default.
+  window.setMapCenter = function(lat, lng, zoom) {
+    if (!map) return;
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      map.setView([lat, lng], zoom || 13);
+    }
+  };
+
   // Tell RN we are ready to receive data
   window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'ready' }));
 </script>

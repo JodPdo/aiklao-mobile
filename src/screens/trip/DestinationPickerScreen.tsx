@@ -86,7 +86,12 @@ export function DestinationPickerScreen() {
         <Text style={styles.instructionText}>💡 แตะแผนที่เพื่อเลือกจุดหมาย</Text>
       </View>
 
-      <LeafletMapView data={mapData} style={styles.map} onMapTap={handleMapTap} />
+      <LeafletMapView
+        data={mapData}
+        style={styles.map}
+        onMapTap={handleMapTap}
+        center={defaultCenter ?? undefined}
+      />
 
       {selectedCoords && (
         <View style={styles.form}>

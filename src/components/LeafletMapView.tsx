@@ -34,9 +34,10 @@ interface Props {
   data: LeafletData;
   style?: any;
   onMapTap?: (lat: number, lng: number) => void;   // Phase 6.1B — destination picker
+  center?: { lat: number; lng: number; zoom?: number };   // optional initial center (overrides Bangkok fallback)
 }
 
-export function LeafletMapView({ data, style, onMapTap }: Props) {
+export function LeafletMapView({ data, style, onMapTap, center }: Props) {
   const webviewRef = useRef<WebView>(null);
   // Checkpoint B: state-based readiness so effect dependency works correctly
   const [webReady, setWebReady] = useState(false);
@@ -52,6 +53,18 @@ export function LeafletMapView({ data, style, onMapTap }: Props) {
       true;
     `);
   }, [webReady, data]);
+
+  // Initial center — fire once the WebView is ready, or when center coords
+  // change. Overrides the HTML's Bangkok fallback view. Deps use lat/lng
+  // (not the object) so a fresh {lat,lng} literal each render won't re-fire.
+  useEffect(() => {
+    if (!webReady || !center) return;
+    const zoom = center.zoom ?? 13;
+    webviewRef.current?.injectJavaScript(`
+      window.setMapCenter(${center.lat}, ${center.lng}, ${zoom});
+      true;
+    `);
+  }, [webReady, center?.lat, center?.lng]);
 
   function onMessage(event: WebViewMessageEvent) {
     try {
