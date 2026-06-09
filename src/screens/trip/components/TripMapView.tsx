@@ -12,6 +12,7 @@ import React from 'react';
 import { Alert, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LeafletData, LeafletMapView } from '@/components/LeafletMapView';
 import { LivePulseDot } from '@/components/LivePulseDot';
+import { SosButton } from '@/components/SosButton';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing, typography } from '@/theme';
 import type { Palette } from '@/theme';
@@ -27,6 +28,11 @@ export interface TripMapViewProps {
   recenterTo?: { lat: number; lng: number };
   recenterToken?: number;
   onRecenter?: () => void;                          // ◎ button (screen recenters to self)
+  // SOS — accepted here so the screen can wire it; the <SosButton> is mounted in
+  // the reserved bottom-left sosSlot in STEP 4. When omitted, the slot stays empty.
+  activeSosId?: string | null;
+  onSosPress?: () => void;
+  onCancelSos?: (id: string) => void;
 }
 
 export function TripMapView({
@@ -38,6 +44,9 @@ export function TripMapView({
   recenterTo,
   recenterToken,
   onRecenter,
+  activeSosId,
+  onSosPress,
+  onCancelSos,
 }: TripMapViewProps) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
@@ -104,11 +113,20 @@ export function TripMapView({
         </Pressable>
       )}
 
-      {/* SOS slot — bottom-left — RESERVED. The SOS subsystem (triggerSos/cancelSos,
-          banner, markers) lives in MapScreen and will be ported here later; the
-          floating button will mount in this position. Intentionally renders nothing
-          now so there is no dead/half-wired control. */}
-      <View style={styles.sosSlot} pointerEvents="none" />
+      {/* SOS button — bottom-left. Mounted only when SOS is enabled (onSosPress
+          provided; screen gates this off for archived trips). `box-none` so the
+          slot never blocks map pan/zoom — only the button (child) takes touches.
+          Idle vs cancel mode is driven by activeSosId (parity with MapScreen). */}
+      {onSosPress && (
+        <View style={styles.sosSlot} pointerEvents="box-none">
+          <SosButton
+            size={40}
+            onPress={onSosPress}
+            activeSosId={activeSosId}
+            onCancelSos={onCancelSos}
+          />
+        </View>
+      )}
     </View>
   );
 }
@@ -185,11 +203,11 @@ function makeStyles(c: Palette) {
       letterSpacing: 0.5,
     },
     sosSlot: {
+      // No fixed size — wraps the SosButton so cancel mode (wider pill) isn't
+      // clipped (matches MapScreen's content-sized wrap).
       position: 'absolute',
       bottom: spacing.md,
       left: spacing.md,
-      width: 44,
-      height: 44,
     },
   });
 }

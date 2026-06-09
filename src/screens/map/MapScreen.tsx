@@ -17,14 +17,15 @@ import { RouteProp } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import { LocationPermissionGate } from '@/permissions/LocationPermissionGate';
 import { SosButton } from '@/components/SosButton';
-import { LeafletMapView, LeafletData, SosMarker } from '@/components/LeafletMapView';
-import { api, triggerSos, cancelSos } from '@/api/client';
+import { LeafletMapView, LeafletData } from '@/components/LeafletMapView';
+import { api } from '@/api/client';
 import { stopBackgroundTracking } from '@/services/locationTask';
 import { useAuth } from '@/auth/AuthContext';
 import { useTheme } from '@/theme/ThemeProvider';
 import { spacing, typography } from '@/theme';
 import type { Palette } from '@/theme';
 import type { HomeStackParamList } from '@/navigation/types';
+import { useSos, SosCoords } from '../trip/useSos';
 
 // ─── Types (mirrors backend GET /:id, Phase 6.2 adds activeSos) ─────────────────
 
@@ -74,12 +75,6 @@ interface TripData {
   activeSos: ActiveSos[];
 }
 
-function fmtTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('th-TH', {
-    timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit', hour12: false,
-  });
-}
-
 // ─── Screen ────────────────────────────────────────────────────────────────────
 
 type MapScreenProps = {
@@ -97,8 +92,6 @@ export function MapScreen({ route }: MapScreenProps) {
   const [bgGranted, setBgGranted] = useState<boolean | null>(null);
   const [tripData, setTripData] = useState<TripData | null>(null);
   const [selfPosition, setSelfPosition] = useState<{ lat: number; lng: number } | null>(null);
-  const [mySosId, setMySosId] = useState<string | null>(null);
-  const [sosTimeHHMM, setSosTimeHHMM] = useState<string>('');
   const styles = makeStyles(colors);
 
   // Background permission check — for tracking status badge
@@ -153,31 +146,25 @@ export function MapScreen({ route }: MapScreenProps) {
 
   const selfPictureUrl = selfMember?.pictureUrl || user?.pictureUrl || undefined;
 
-  // My own active SOS (coercion-safe: backend userId is stringified BIGINT;
-  // user.id is string but could be number after future auth changes).
-  const myActiveSos = tripData?.activeSos?.find(
-    (s) => String(s.userId) === String(user?.id)
-  ) ?? null;
+  // Coords provider for SOS — reproduces the previous selfMarkerCoords +
+  // accuracy logic exactly (selfMember.lastLocation ?? selfPosition).
+  const getCoords = (): SosCoords | null => {
+    if (!selfMarkerCoords) return null;
+    return {
+      lat: selfMarkerCoords.lat,
+      lng: selfMarkerCoords.lng,
+      accuracyM: selfMember?.lastLocation?.accuracyM ?? undefined,
+    };
+  };
 
-  // Reconcile local SOS state with server truth whenever my active SOS changes.
-  useEffect(() => {
-    if (myActiveSos) {
-      setMySosId(String(myActiveSos.id));
-      setSosTimeHHMM(fmtTime(myActiveSos.triggeredAt));
-    } else {
-      setMySosId(null);
-      setSosTimeHHMM('');
-    }
-  }, [myActiveSos?.id]);
-
-  // SOS markers for the map (all active SOS on this trip, not just mine)
-  const sosMarkers: SosMarker[] = (tripData?.activeSos ?? []).map((s) => ({
-    id: String(s.id),
-    lat: s.lat,
-    lng: s.lng,
-    name: s.displayName,
-    timeHHMM: fmtTime(s.triggeredAt),
-  }));
+  // Shared SOS controller — state, reconciliation, handlers, markers (was inline).
+  const sos = useSos({
+    tripId,
+    activeSos: tripData?.activeSos,
+    user,
+    getCoords,
+    refetch: fetchTrip,
+  });
 
   const mapData: LeafletData = {
     self: selfMarkerCoords
@@ -207,70 +194,7 @@ export function MapScreen({ route }: MapScreenProps) {
           name: tripData.trip.destination.name,
         }
       : undefined,
-    sosMarkers,
-  };
-
-  // REV 2 — Alert.alert wrappers (UI confirm before calling the actual API handlers)
-
-  const handleSosPress = () => {
-    if (!selfMarkerCoords) {
-      Alert.alert('ส่ง SOS ไม่ได้', 'ยังไม่มีพิกัดของคุณในระบบ');
-      return;
-    }
-    Alert.alert(
-      '🚨 ยืนยันส่งสัญญาณ SOS?',
-      'สมาชิกทุกคนในทริปจะได้รับแจ้งเตือนทันที พร้อมตำแหน่งปัจจุบันของคุณ',
-      [
-        { text: 'ยกเลิก', style: 'cancel' },
-        { text: 'ส่ง SOS', style: 'destructive', onPress: handleSosConfirm },
-      ],
-    );
-  };
-
-  const handleSosCancelPress = (sosId: string) => {
-    Alert.alert(
-      'ยืนยันยกเลิก SOS?',
-      'สมาชิกทุกคนจะเห็นว่า SOS ของคุณถูกยกเลิก',
-      [
-        { text: 'ไม่', style: 'cancel' },
-        { text: 'ยกเลิก SOS', style: 'destructive', onPress: () => handleSosCancel(sosId) },
-      ],
-    );
-  };
-
-  // Actual API calls (confirm UI lives in the *Press wrappers above)
-
-  const handleSosConfirm = async () => {
-    try {
-      const sos = await triggerSos(String(tripId), {
-        lat: selfMarkerCoords!.lat,
-        lng: selfMarkerCoords!.lng,
-        accuracy_m: selfMember?.lastLocation?.accuracyM ?? undefined,
-      });
-      // Instant UX — optimistic local state so banner appears with no lag
-      setMySosId(sos.id);
-      setSosTimeHHMM(fmtTime(sos.triggeredAt));
-      // Immediate refetch so activeSos[] populates the SOS marker (60s poll too slow)
-      fetchTrip();
-    } catch (e: any) {
-      if (e.code === 'ACTIVE_SOS_EXISTS') {
-        if (e.existingId) setMySosId(String(e.existingId));
-        fetchTrip();
-        Alert.alert('SOS ส่งไปแล้ว', 'คุณมี SOS ที่ยังไม่ยกเลิกอยู่');
-      } else {
-        Alert.alert('ส่ง SOS ไม่สำเร็จ', e.message || 'ลองอีกครั้ง');
-      }
-    }
-  };
-
-  const handleSosCancel = async (sosId: string) => {
-    try {
-      await cancelSos(String(tripId), sosId);
-      setMySosId(null);
-      fetchTrip();
-    } catch (e: any) {
-      Alert.alert('ยกเลิกไม่สำเร็จ', e.message || 'ลองอีกครั้ง');
-    }
+    sosMarkers: sos.sosMarkers,
   };
 
   function handleStop() {
@@ -309,10 +233,10 @@ export function MapScreen({ route }: MapScreenProps) {
     <LocationPermissionGate>
       <View style={styles.container}>
         {/* Active SOS Banner — pushes map down when own SOS active */}
-        {mySosId && (
+        {sos.mySosId && (
           <View style={styles.sosBanner}>
-            <Text style={styles.sosBannerText}>🚨 SOS ACTIVE · {sosTimeHHMM}</Text>
-            <Pressable onPress={() => handleSosCancelPress(mySosId)} hitSlop={12}>
+            <Text style={styles.sosBannerText}>🚨 SOS ACTIVE · {sos.sosTimeHHMM}</Text>
+            <Pressable onPress={() => sos.handleSosCancelPress(sos.mySosId!)} hitSlop={12}>
               <Text style={styles.sosBannerCancel}>ยกเลิก ✕</Text>
             </Pressable>
           </View>
@@ -325,9 +249,9 @@ export function MapScreen({ route }: MapScreenProps) {
         <View style={styles.sosButtonWrap}>
           <SosButton
             size={40}
-            onPress={handleSosPress}
-            activeSosId={mySosId}
-            onCancelSos={handleSosCancelPress}
+            onPress={sos.handleSosPress}
+            activeSosId={sos.mySosId}
+            onCancelSos={sos.handleSosCancelPress}
           />
         </View>
 

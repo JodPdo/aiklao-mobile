@@ -31,6 +31,19 @@ export interface Member {
   lastLocation: LastLocation | null;
 }
 
+// Active (uncancelled) SOS event for this trip. Backend GET /:id returns these
+// (aiklao_mb_local/routes/mobileTrips.js); the mobile client already receives
+// them in res.data — this type just stops them being dropped. Mirrors MapScreen.
+export interface ActiveSos {
+  id: string;
+  userId: string;
+  displayName: string;
+  pictureUrl: string | null;
+  lat: number;
+  lng: number;
+  triggeredAt: string;
+}
+
 export interface TripData {
   trip: {
     id: string;
@@ -44,6 +57,7 @@ export interface TripData {
     totalDistanceKm: number | null;
   };
   members: Member[];
+  activeSos: ActiveSos[];
 }
 
 // ─── Avatar helpers ──────────────────────────────────────────────────────────────

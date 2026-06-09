@@ -3,7 +3,7 @@
     "name": "AiKlao",
     "slug": "aiklao-mobile",
     "scheme": "aiklao",
-    "version": "0.4.7",
+    "version": "0.4.8",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "automatic",

@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
+  Pressable,
   RefreshControl,
   ScrollView,
   Share,
@@ -11,6 +12,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import * as Location from 'expo-location';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -39,6 +41,7 @@ import { TripStatsCard } from './components/TripStatsCard';
 import { MemberList } from './components/MemberList';
 import { TripActionBar } from './components/TripActionBar';
 import { TripData } from './tripShared';
+import { useSos, SosCoords } from './useSos';
 
 // ─── Route types ─────────────────────────────────────────────────────────────────
 // Shared TripData/Member types + format/avatar helpers live in ./tripShared.
@@ -64,6 +67,9 @@ export function TripDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [activeTripId, setActiveTripId] = useState<string | null>(null);
   const [showInvite, setShowInvite] = useState(false);
+  // One-shot self-position fallback for SOS coords (mirrors MapScreen) — used when
+  // the caller has no lastLocation yet so SOS still works.
+  const [selfPosition, setSelfPosition] = useState<{ lat: number; lng: number } | null>(null);
   // Single recenter path shared by the ◎ button and member-row taps (lifted from
   // TripMapView). `token` bumps each call so re-tapping the same target re-centers.
   const [recenter, setRecenter] = useState<{ to?: { lat: number; lng: number }; token: number }>({ token: 0 });
@@ -120,6 +126,45 @@ export function TripDetailScreen() {
     const id = setInterval(() => { load(); }, 60_000);
     return () => clearInterval(id);
   }, [powerSave, isArchived, load]);
+
+  // One-shot self-position fix on mount (mirrors MapScreen). Requires foreground
+  // location permission (granted elsewhere in the app); on failure selfPosition
+  // stays null and SOS falls back to callerMember.lastLocation.
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const fix = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        if (mounted) setSelfPosition({ lat: fix.coords.latitude, lng: fix.coords.longitude });
+      } catch (err: any) {
+        console.log('[trip-detail] initial location failed:', err?.message);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  // Synchronous coords read for SOS (parity with MapScreen's selfMarkerCoords):
+  // callerMember.lastLocation ?? one-shot fix; accuracy from lastLocation only.
+  const getSosCoords = useCallback((): SosCoords | null => {
+    const ll = callerMember?.lastLocation;
+    const coords = ll ? { lat: ll.lat, lng: ll.lng } : selfPosition;
+    if (!coords) return null;
+    return { lat: coords.lat, lng: coords.lng, accuracyM: ll?.accuracyM ?? undefined };
+  }, [callerMember, selfPosition]);
+
+  // Shared SOS controller (identical behavior to MapScreen).
+  const sos = useSos({
+    tripId,
+    activeSos: data?.activeSos,
+    user,
+    getCoords: getSosCoords,
+    refetch: load,
+  });
+
+  // SOS is shown on ACTIVE trips only — hidden on archived.
+  const sosVisible = !isArchived;
 
   // Build styles from current palette
   const styles = makeStyles(colors);
@@ -277,6 +322,7 @@ export function TripDetailScreen() {
     destination: data.trip.destination
       ? { lat: data.trip.destination.lat, lng: data.trip.destination.lng, name: data.trip.destination.name }
       : undefined,
+    sosMarkers: sosVisible ? sos.sosMarkers : undefined,   // all members' active SOS
   };
 
   // Phase 6.5 arrival summary — surfaced in the members card header (null = hidden)
@@ -302,6 +348,16 @@ export function TripDetailScreen() {
         onShare={callerMember?.isLeader ? handleShareInvite : undefined}
       />
 
+      {/* Active-SOS banner — self only, active trips only; above the map (mirrors MapScreen) */}
+      {sosVisible && sos.mySosId && (
+        <View style={styles.sosBanner}>
+          <Text style={styles.sosBannerText}>🚨 SOS ACTIVE · {sos.sosTimeHHMM}</Text>
+          <Pressable onPress={() => sos.handleSosCancelPress(sos.mySosId!)} hitSlop={12}>
+            <Text style={styles.sosBannerCancel}>ยกเลิก ✕</Text>
+          </Pressable>
+        </View>
+      )}
+
       {/* Map — directly under the header, fixed ~40% height (overlays + SOS slot inside) */}
       <TripMapView
         data={mapData}
@@ -312,6 +368,9 @@ export function TripDetailScreen() {
         recenterTo={recenter.to}
         recenterToken={recenter.token}
         onRecenter={selfCoords ? () => focusOnMap(selfCoords) : undefined}
+        activeSosId={sosVisible ? sos.mySosId : null}
+        onSosPress={sosVisible ? sos.handleSosPress : undefined}
+        onCancelSos={sos.handleSosCancelPress}
       />
 
       <ScrollView
@@ -404,6 +463,14 @@ function makeStyles(c: Palette) {
       justifyContent: 'center',
       padding: spacing.xl,
     },
+
+    // Active-SOS banner — hardcoded danger red (sanctioned exception), verbatim from MapScreen
+    sosBanner: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      backgroundColor: '#DC2626', paddingHorizontal: 16, paddingVertical: 12,
+    },
+    sosBannerText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+    sosBannerCancel: { color: '#fff', fontSize: 14, textDecorationLine: 'underline' },
 
     // ScrollView
     scroll: { flex: 1 },
