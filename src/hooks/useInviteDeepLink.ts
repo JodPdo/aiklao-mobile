@@ -13,6 +13,7 @@ import { useAuth } from '@/auth/AuthContext';
 import { acceptInvite } from '@/api/client';
 import { navigationRef, navigateToTrip } from '@/navigation/navigationRef';
 import { notify } from '@/services/notify';
+import { t } from '@/i18n';
 import {
   parseInviteToken,
   getPendingToken,
@@ -72,30 +73,30 @@ export function useInviteDeepLink() {
         case 'joined':
           await clearPendingToken();
           setPending(null);
-          notify(`เข้าร่วม ${result.tripName} แล้ว`);
+          notify(t('invite.joined', { name: result.tripName }));
           navigateToTrip(result.tripId);
           break;
         case 'already':
           await clearPendingToken();
           setPending(null);
-          notify('ยินดีต้อนรับกลับ');
+          notify(t('invite.welcomeBack'));
           navigateToTrip(result.tripId);
           break;
         case 'expired':
           await clearPendingToken();
           setPending(null);
-          notify('ลิงก์หมดอายุ');
+          notify(t('invite.expired'));
           break;
         case 'notfound':
           await clearPendingToken();
           setPending(null);
-          notify('ลิงก์ไม่ถูกต้อง');
+          notify(t('invite.invalid'));
           break;
         case 'error':
         default:
           // Keep the token queued; a transient error retries on next trigger
           // (new url, status change, or onReady).
-          notify('ไม่สามารถเชื่อมต่อได้ ลองใหม่');
+          notify(t('invite.connectFailed'));
           break;
       }
     } finally {

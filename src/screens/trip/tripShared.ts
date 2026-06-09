@@ -1,7 +1,9 @@
 // src/screens/trip/tripShared.ts
 // Shared types + format/avatar helpers for the Trip Detail screen and its
-// sub-components (components/). No JSX here — keeps imports one-directional
-// (screen + components -> tripShared) and avoids circular deps.
+// sub-components (components/). No JSX here. The format helpers below call t()
+// so callers get the device-locale language (the clock parts stay as-is).
+
+import { t, currentLocale } from '@/i18n';
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
@@ -72,21 +74,21 @@ export function avatarChar(displayName: string): string {
 
 // ─── Format helpers ──────────────────────────────────────────────────────────────
 
-const TH_MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+// Locale-specific abbreviated month names. Kept here (not in i18n) so we keep
+// the Gregorian year via d.getFullYear() rather than risk a Buddhist-era year
+// from Intl under the Thai locale.
+const MONTHS: Record<string, string[]> = {
+  th: ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'],
+  en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+};
 
-// "8 มิ.ย. 2026 · เริ่ม 09:04"
+// "8 มิ.ย. 2026 · เริ่ม 09:04" / "8 Jun 2026 · Started 09:04" (clock unchanged)
 export function formatDate(iso: string): string {
   const d = new Date(iso);
-  const dateStr = `${d.getDate()} ${TH_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+  const months = MONTHS[currentLocale] ?? MONTHS.en;
+  const dateStr = `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
   const timeStr = d.toTimeString().slice(0, 5);
-  return `${dateStr} · เริ่ม ${timeStr}`;
-}
-
-export function formatDuration(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  if (h === 0) return `${m} นาที`;
-  return `${h} ชม. ${m} นาที`;
+  return `${dateStr} · ${t('trip.started')} ${timeStr}`;
 }
 
 // HH:MM in Bangkok time (arrival timestamp)
@@ -99,19 +101,19 @@ export function fmtTimeHHMM(iso: string): string {
 export function formatRelativeTime(iso: string): string {
   const age = Date.now() - new Date(iso).getTime();
   const sec = Math.floor(age / 1000);
-  if (sec < 60) return `${sec} วินาทีที่แล้ว`;
+  if (sec < 60) return t('trip.relativeTime.seconds', { count: sec });
   const min = Math.floor(sec / 60);
-  if (min < 60) return `${min} นาทีที่แล้ว`;
+  if (min < 60) return t('trip.relativeTime.minutes', { count: min });
   const hr = Math.floor(min / 60);
-  return `${hr} ชม.ที่แล้ว`;
+  return t('trip.relativeTime.hours', { count: hr });
 }
 
 export function memberStatusLabel(member: Member): string {
-  if (member.isLeader) return 'หัวหน้า';
-  if (!member.lastLocation) return 'รอ';
+  if (member.isLeader) return t('trip.member.leader');
+  if (!member.lastLocation) return t('trip.member.waiting');
   const age = Date.now() - new Date(member.lastLocation.createdAt).getTime();
-  if (age > OFFLINE_THRESHOLD_MS) return 'ออฟไลน์';
-  return `${member.lastLocation.distanceFromLeaderKm?.toFixed(1) ?? '?'} กม.`;
+  if (age > OFFLINE_THRESHOLD_MS) return t('trip.member.offline');
+  return t('trip.member.distanceFromLeader', { km: member.lastLocation.distanceFromLeaderKm?.toFixed(1) ?? '?' });
 }
 
 export function isRecent(iso: string): boolean {

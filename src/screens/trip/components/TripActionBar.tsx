@@ -1,33 +1,34 @@
 // src/screens/trip/components/TripActionBar.tsx
-// Sticky bottom action bar: [แชร์ตำแหน่ง primary] · [เชิญ secondary] · [จบ red].
-// Wiring/guards are owned by the screen and passed in unchanged:
-//   • share → handleShareLocation (isSharing → disabled "กำลังแชร์")
-//   • เชิญ  → setShowInvite (leader-only via canInvite)
-//   • จบ    → handleEndTrip (danger; disabled unless canStop)
+// Sticky bottom action bar: [สมาชิก (N) primary] · [เชิญ secondary] · [จบ red].
+// Wiring/guards are owned by the screen and passed in:
+//   • members → opens the MembersSheet (label shows the count)
+//   • เชิญ    → setShowInvite (leader-only via canInvite)
+//   • จบ      → handleEndTrip (danger; disabled unless canStop)
 
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button } from '@/components/Button';
+import { t } from '@/i18n';
 import { useTheme } from '@/theme/ThemeProvider';
 import { spacing } from '@/theme';
 import type { Palette } from '@/theme';
 
 export interface TripActionBarProps {
-  isSharing: boolean;
+  memberCount: number;
   canInvite: boolean;        // leader-only
   canStop: boolean;
   bottomInset: number;       // safe-area padding for the bar
-  onShareLocation: () => void;
+  onMembers: () => void;
   onInvite: () => void;
   onEndTrip: () => void;
 }
 
 export function TripActionBar({
-  isSharing,
+  memberCount,
   canInvite,
   canStop,
   bottomInset,
-  onShareLocation,
+  onMembers,
   onInvite,
   onEndTrip,
 }: TripActionBarProps) {
@@ -37,21 +38,17 @@ export function TripActionBar({
   return (
     <View style={[styles.bar, { paddingBottom: bottomInset }]}>
       <View style={styles.row}>
-        {/* Share location — primary, widest */}
-        {isSharing ? (
-          <Button label="📍 กำลังแชร์" disabled style={{ ...styles.btn, flex: 2 }} />
-        ) : (
-          <Button
-            label="📍 แชร์ตำแหน่ง"
-            onPress={onShareLocation}
-            style={{ ...styles.btn, flex: 2 }}
-          />
-        )}
+        {/* Members — opens the members sheet; primary, widest */}
+        <Button
+          label={t('trip.members.count', { count: memberCount })}
+          onPress={onMembers}
+          style={{ ...styles.btn, flex: 2 }}
+        />
 
         {/* Invite — secondary, leader only */}
         {canInvite && (
           <Button
-            label="เชิญ"
+            label={t('trip.invite')}
             variant="secondary"
             onPress={onInvite}
             style={{ ...styles.btn, flex: 1 }}
@@ -60,7 +57,7 @@ export function TripActionBar({
 
         {/* End trip — danger (red); disabled unless leader & active */}
         <Button
-          label="⊗ จบ"
+          label={`⊗ ${t('trip.action.end')}`}
           variant={canStop ? 'danger' : 'secondary'}
           disabled={!canStop}
           onPress={onEndTrip}

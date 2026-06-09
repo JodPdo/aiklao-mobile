@@ -10,16 +10,14 @@
 //   SOS state derived from tripData.activeSos[] (single source of truth) + optimistic local.
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { RouteProp } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import { LocationPermissionGate } from '@/permissions/LocationPermissionGate';
 import { SosButton } from '@/components/SosButton';
 import { LeafletMapView, LeafletData } from '@/components/LeafletMapView';
 import { api } from '@/api/client';
-import { stopBackgroundTracking } from '@/services/locationTask';
+import { t } from '@/i18n';
 import { useAuth } from '@/auth/AuthContext';
 import { useTheme } from '@/theme/ThemeProvider';
 import { spacing, typography } from '@/theme';
@@ -81,14 +79,10 @@ type MapScreenProps = {
   route: RouteProp<HomeStackParamList, 'MapScreen'>;
 };
 
-type MapNavProp = NativeStackNavigationProp<HomeStackParamList, 'MapScreen'>;
-
 export function MapScreen({ route }: MapScreenProps) {
   const { tripId } = route.params;
-  const navigation = useNavigation<MapNavProp>();
   const { colors } = useTheme();
   const { user } = useAuth();
-  const [isStopping, setIsStopping] = useState(false);
   const [bgGranted, setBgGranted] = useState<boolean | null>(null);
   const [tripData, setTripData] = useState<TripData | null>(null);
   const [selfPosition, setSelfPosition] = useState<{ lat: number; lng: number } | null>(null);
@@ -171,7 +165,7 @@ export function MapScreen({ route }: MapScreenProps) {
       ? {
           lat: selfMarkerCoords.lat,
           lng: selfMarkerCoords.lng,
-          name: 'คุณ',
+          name: t('map.selfMarker'),
           pictureUrl: selfPictureUrl,
           arrivedAt: selfMember?.arrivedAt ?? null,   // Phase 6.5
         }
@@ -197,37 +191,10 @@ export function MapScreen({ route }: MapScreenProps) {
     sosMarkers: sos.sosMarkers,
   };
 
-  function handleStop() {
-    if (isStopping) return;
-    Alert.alert(
-      'จบทริป?',
-      'จะหยุดการติดตามตำแหน่งและจบทริปนี้',
-      [
-        { text: 'ยกเลิก', style: 'cancel' },
-        {
-          text: 'จบทริป',
-          style: 'destructive',
-          onPress: async () => {
-            setIsStopping(true);
-            try {
-              await api.post(`/api/mobile/trips/${tripId}/stop`);
-              await stopBackgroundTracking();
-              navigation.goBack();
-            } catch (err: any) {
-              setIsStopping(false);
-              if (err?.response?.status === 401) return;
-              Alert.alert('ไม่สามารถจบทริปได้', 'ลองอีกครั้ง');
-            }
-          },
-        },
-      ],
-    );
-  }
-
   const trackingLabel =
     bgGranted === null  ? null :
-    bgGranted           ? '🟢 กำลังติดตามตำแหน่งแบบเบื้องหลัง' :
-                          '🟡 ติดตามตำแหน่งเฉพาะตอนเปิดแอป';
+    bgGranted           ? `🟢 ${t('map.tracking.background')}` :
+                          `🟡 ${t('map.tracking.foreground')}`;
 
   return (
     <LocationPermissionGate>
@@ -235,9 +202,9 @@ export function MapScreen({ route }: MapScreenProps) {
         {/* Active SOS Banner — pushes map down when own SOS active */}
         {sos.mySosId && (
           <View style={styles.sosBanner}>
-            <Text style={styles.sosBannerText}>🚨 SOS ACTIVE · {sos.sosTimeHHMM}</Text>
+            <Text style={styles.sosBannerText}>{t('sos.bannerActive', { time: sos.sosTimeHHMM })}</Text>
             <Pressable onPress={() => sos.handleSosCancelPress(sos.mySosId!)} hitSlop={12}>
-              <Text style={styles.sosBannerCancel}>ยกเลิก ✕</Text>
+              <Text style={styles.sosBannerCancel}>{t('common.cancel')} ✕</Text>
             </Pressable>
           </View>
         )}
@@ -257,21 +224,10 @@ export function MapScreen({ route }: MapScreenProps) {
 
         {/* Footer (info only) — bottom-left so it clears the Stop button */}
         <View style={styles.footer} pointerEvents="none">
-          <Text style={styles.footerText}>Trip #{tripId}</Text>
+          <Text style={styles.footerText}>{t('map.tripLabel', { id: tripId })}</Text>
           {trackingLabel !== null && (
             <Text style={styles.footerText}>{trackingLabel}</Text>
           )}
-        </View>
-
-        {/* Stop button — compact, bottom-right corner */}
-        <View style={styles.stopButtonWrap}>
-          <Pressable
-            style={[styles.stopButton, isStopping && { opacity: 0.5 }]}
-            onPress={handleStop}
-            disabled={isStopping}
-          >
-            <Text style={styles.stopButtonText}>⏹ จบ</Text>
-          </Pressable>
         </View>
       </View>
     </LocationPermissionGate>
@@ -311,13 +267,5 @@ function makeStyles(c: Palette) {
       ...typography.caption,
       color: '#374151',           // dark slate — legible on the translucent pill
     },
-    stopButtonWrap: {
-      position: 'absolute', bottom: spacing.lg, right: spacing.lg,
-    },
-    stopButton: {
-      backgroundColor: '#DC2626', paddingHorizontal: 14, paddingVertical: 8,
-      borderRadius: 8, minWidth: 60, alignItems: 'center',
-    },
-    stopButtonText: { color: '#fff', fontSize: 13, fontWeight: '600' },
   });
 }

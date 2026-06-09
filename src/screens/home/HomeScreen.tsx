@@ -8,6 +8,7 @@ import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
 import { ActiveTripCard } from '@/components/ActiveTripCard';
 import { useAuth } from '@/auth/AuthContext';
+import { t } from '@/i18n';
 import { listTrips, type TripSummary } from '@/api/client';
 import {
   stopBackgroundTracking,
@@ -94,10 +95,10 @@ export function HomeScreen() {
   return (
     <Screen padded background="alt">
       <Text style={styles.greeting}>
-        {'Hello, '}{user?.displayName ?? ''}{/* TODO(thai) */}
+        {t('home.greeting', { name: user?.displayName ?? '' })}
       </Text>
       <Text style={styles.subtitle}>
-        Ready for a trip today?{/* TODO(thai) */}
+        {t('home.subtitle')}
       </Text>
 
       {hasActive ? (
@@ -113,7 +114,7 @@ export function HomeScreen() {
             />
           ))}
           <Button
-            label="Start New Trip" // TODO(thai)
+            label={t('home.startNewTrip')}
             variant="secondary"
             onPress={handleStartNewTrip}
             fullWidth
@@ -122,13 +123,12 @@ export function HomeScreen() {
         </>
       ) : (
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>No active trip{/* TODO(thai) */}</Text>
+          <Text style={styles.cardTitle}>{t('home.noActiveTrip')}</Text>
           <Text style={styles.cardBody}>
-            Tap &quot;Start New Trip&quot; to begin tracking your location.
-            {/* TODO(thai) */}
+            {t('home.noActiveTripBody')}
           </Text>
           <Button
-            label="Start New Trip" // TODO(thai)
+            label={t('home.startNewTrip')}
             onPress={handleStartNewTrip}
             fullWidth
             style={{ marginTop: spacing.lg }}

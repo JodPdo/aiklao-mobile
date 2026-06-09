@@ -12,6 +12,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
+import { t } from '@/i18n';
 import { useTheme } from '@/theme/ThemeProvider';
 import { useAuth } from '@/auth/AuthContext';
 import { api } from '@/api/client';
@@ -46,7 +47,7 @@ export function CreateTripScreen() {
 
   function validate() {
     const errs: typeof errors = {};
-    if (!name.trim()) errs.name = 'กรุณาใส่ชื่อทริป';
+    if (!name.trim()) errs.name = t('createTrip.nameRequired');
     setErrors(errs);
     return Object.keys(errs).length === 0;
   }
@@ -73,7 +74,7 @@ export function CreateTripScreen() {
       navigation.replace('MapScreen', { tripId });
     } catch (err: any) {
       if (err?.response?.status === 401) return;
-      Alert.alert('สร้างทริปไม่สำเร็จ', err?.response?.data?.error ?? err?.message ?? 'ลองใหม่');
+      Alert.alert(t('createTrip.createFailed'), err?.response?.data?.error ?? err?.message ?? t('common.retry'));
     } finally {
       setSubmitting(false);
     }
@@ -86,17 +87,17 @@ export function CreateTripScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView contentContainerStyle={styles.scroll}>
-          <Text style={styles.title}>สร้างทริปใหม่</Text>
-          <Text style={styles.subtitle}>กรอกข้อมูลให้สมาชิกในกลุ่มเห็นว่ากำลังไปไหน</Text>
+          <Text style={styles.title}>{t('createTrip.title')}</Text>
+          <Text style={styles.subtitle}>{t('createTrip.subtitle')}</Text>
 
           {/* Trip Name */}
           <View style={styles.field}>
-            <Text style={styles.label}>ชื่อทริป <Text style={styles.required}>*</Text></Text>
+            <Text style={styles.label}>{t('createTrip.nameLabel')} <Text style={styles.required}>*</Text></Text>
             <TextInput
               style={[styles.input, errors.name && styles.inputError]}
               value={name}
               onChangeText={setName}
-              placeholder="เช่น เที่ยวเชียงใหม่ ปีใหม่"
+              placeholder={t('createTrip.namePlaceholder')}
               placeholderTextColor={colors.textSecondary}
               maxLength={80}
             />
@@ -105,15 +106,15 @@ export function CreateTripScreen() {
 
           {/* Destination — tap-to-pick map (Phase 6.1B) */}
           <View style={styles.field}>
-            <Text style={styles.label}>จุดหมาย <Text style={styles.optional}>(ไม่บังคับ)</Text></Text>
+            <Text style={styles.label}>{t('createTrip.destinationLabel')} <Text style={styles.optional}>{t('createTrip.optional')}</Text></Text>
             {destination ? (
               <View style={styles.destCard}>
-                <Text style={styles.destName}>📍 {destination.name}</Text>
+                <Text style={styles.destName}>{destination.name}</Text>
                 <Text style={styles.destCoords}>
                   {destination.lat.toFixed(5)}, {destination.lng.toFixed(5)}
                 </Text>
                 <Button
-                  label="เปลี่ยนจุดหมาย"
+                  label={t('createTrip.changeDestination')}
                   variant="ghost"
                   onPress={() => navigation.navigate('DestinationPicker')}
                   fullWidth
@@ -122,7 +123,7 @@ export function CreateTripScreen() {
               </View>
             ) : (
               <Button
-                label="📍 เลือกจุดหมายบนแผนที่"
+                label={t('createTrip.pickOnMap')}
                 variant="ghost"
                 onPress={() => navigation.navigate('DestinationPicker')}
                 fullWidth
@@ -134,7 +135,7 @@ export function CreateTripScreen() {
         {/* Submit button (sticky bottom) */}
         <View style={styles.actionBar}>
           <Button
-            label={submitting ? 'กำลังสร้าง...' : 'สร้างทริปและเริ่มเดินทาง'}
+            label={submitting ? t('createTrip.submitting') : t('createTrip.submit')}
             onPress={handleSubmit}
             disabled={submitting}
             fullWidth

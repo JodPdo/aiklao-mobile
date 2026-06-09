@@ -13,23 +13,24 @@ import { Alert, Linking, Pressable, StyleSheet, Text, View } from 'react-native'
 import { LeafletData, LeafletMapView } from '@/components/LeafletMapView';
 import { LivePulseDot } from '@/components/LivePulseDot';
 import { SosButton } from '@/components/SosButton';
+import { t } from '@/i18n';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing, typography } from '@/theme';
 import type { Palette } from '@/theme';
 
 export interface TripMapViewProps {
   data: LeafletData;
-  height: number;
+  // Fills its parent via flex (the screen sizes the map region to ~70% of the
+  // viewport with a flex ratio — no hardcoded pixel height).
   powerSave: boolean;
-  live: boolean;                                   // someone is actively sharing → LIVE badge
-  destination?: { lat: number; lng: number; name: string } | null;  // nav-arrow target
+  live: boolean;                                   // someone is actively sharing → LIVE badge (top-left)
+  destination?: { lat: number; lng: number; name: string } | null;  // nav-arrow (top-right) target
   // Recenter is lifted to the screen so the ◎ button AND member-row taps drive a
   // single path. `recenterTo` is the current target; bump `recenterToken` to fire.
   recenterTo?: { lat: number; lng: number };
   recenterToken?: number;
-  onRecenter?: () => void;                          // ◎ button (screen recenters to self)
-  // SOS — accepted here so the screen can wire it; the <SosButton> is mounted in
-  // the reserved bottom-left sosSlot in STEP 4. When omitted, the slot stays empty.
+  onRecenter?: () => void;                          // ◎ button (bottom-right) — recenter to self
+  // SOS — <SosButton> mounts in the bottom-left slot when onSosPress is provided.
   activeSosId?: string | null;
   onSosPress?: () => void;
   onCancelSos?: (id: string) => void;
@@ -37,7 +38,6 @@ export interface TripMapViewProps {
 
 export function TripMapView({
   data,
-  height,
   powerSave,
   live,
   destination,
@@ -58,20 +58,20 @@ export function TripMapView({
     try {
       await Linking.openURL(url);
     } catch {
-      Alert.alert('เปิดแผนที่นำทางไม่ได้', 'ลองอีกครั้ง');
+      Alert.alert(t('trip.map.navFailed'), t('common.retry'));
     }
   }
 
   if (powerSave) {
     return (
-      <View style={[styles.placeholder, { height }]}>
-        <Text style={styles.placeholderText}>🔋 แผนที่ปิดอยู่ในโหมดประหยัดแบตเตอรี่</Text>
+      <View style={styles.placeholder}>
+        <Text style={styles.placeholderText}>🔋 {t('trip.map.placeholderPowerSave')}</Text>
       </View>
     );
   }
 
   return (
-    <View style={[styles.wrap, { height }]}>
+    <View style={styles.wrap}>
       <LeafletMapView
         data={data}
         style={styles.map}
@@ -79,20 +79,20 @@ export function TripMapView({
         recenterToken={recenterToken}
       />
 
-      {/* nav-arrow — top-left — external turn-by-turn (only when a destination is set) */}
+      {/* nav-arrow — TOP-RIGHT — external turn-by-turn (only when a destination is set) */}
       {destination != null && (
         <Pressable
           style={[styles.fab, styles.navArrow]}
           onPress={openExternalNav}
           hitSlop={6}
           accessibilityRole="button"
-          accessibilityLabel="นำทางไปจุดหมาย"
+          accessibilityLabel={t('trip.map.a11yNavigate')}
         >
           <Text style={styles.fabIcon}>➤</Text>
         </Pressable>
       )}
 
-      {/* LIVE badge — top-right — reuses LivePulseDot */}
+      {/* LIVE badge — TOP-LEFT — reuses LivePulseDot */}
       {live && (
         <View style={styles.liveBadge}>
           <LivePulseDot color={colors.live} size={5} />
@@ -107,7 +107,7 @@ export function TripMapView({
           onPress={onRecenter}
           hitSlop={6}
           accessibilityRole="button"
-          accessibilityLabel="กลับไปที่ตำแหน่งของฉัน"
+          accessibilityLabel={t('trip.map.a11yRecenter')}
         >
           <Text style={styles.fabIcon}>◎</Text>
         </Pressable>
@@ -134,6 +134,7 @@ export function TripMapView({
 function makeStyles(c: Palette) {
   return StyleSheet.create({
     wrap: {
+      flex: 1,                       // fills the ~70% map region the screen sizes via flex
       position: 'relative',
       backgroundColor: c.gray200,   // tile-load backdrop
     },
@@ -141,6 +142,7 @@ function makeStyles(c: Palette) {
       flex: 1,
     },
     placeholder: {
+      flex: 1,                       // same footprint as the live map (no layout jump)
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: c.gray100,
@@ -176,7 +178,7 @@ function makeStyles(c: Palette) {
     },
     navArrow: {
       top: spacing.md,
-      left: spacing.md,
+      right: spacing.md,            // TOP-RIGHT (swapped from top-left)
     },
     recenter: {
       bottom: spacing.md,
@@ -185,7 +187,7 @@ function makeStyles(c: Palette) {
     liveBadge: {
       position: 'absolute',
       top: spacing.md,
-      right: spacing.md,
+      left: spacing.md,             // TOP-LEFT (swapped from top-right)
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.xs,

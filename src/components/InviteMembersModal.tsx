@@ -18,6 +18,7 @@ import type { AxiosError } from 'axios';
 import { Button } from '@/components/Button';
 import { createInvite, InviteResponse } from '@/api/client';
 import { notify } from '@/services/notify';
+import { t, currentLocale } from '@/i18n';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing, typography } from '@/theme';
 import type { Palette } from '@/theme';
@@ -29,10 +30,16 @@ interface InviteMembersModalProps {
   onClose: () => void;
 }
 
+// Locale month abbreviations (Gregorian year kept, same approach as tripShared).
+const EXPIRY_MONTHS: Record<string, string[]> = {
+  th: ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'],
+  en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+};
+
 function formatExpiry(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+  const months = EXPIRY_MONTHS[currentLocale] ?? EXPIRY_MONTHS.en;
   return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
 }
 
@@ -52,8 +59,8 @@ export function InviteMembersModal({ visible, tripId, tripName, onClose }: Invit
       setInvite(data);
     } catch (e) {
       const status = (e as AxiosError).response?.status;
-      if (status === 403) setError('เฉพาะหัวหน้าทริปเท่านั้นที่เชิญเพื่อนได้');
-      else setError('โหลดลิงก์ไม่สำเร็จ');
+      if (status === 403) setError(t('trip.share.notLeaderMessage'));
+      else setError(t('invite.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -66,26 +73,28 @@ export function InviteMembersModal({ visible, tripId, tripName, onClose }: Invit
   const onCopyCode = useCallback(async () => {
     if (!invite) return;
     await Clipboard.setStringAsync(invite.code);
-    notify('คัดลอกรหัสแล้ว');
+    notify(t('invite.codeCopied'));
   }, [invite]);
 
   const onCopyLink = useCallback(async () => {
     if (!invite) return;
     await Clipboard.setStringAsync(invite.link);
-    notify('คัดลอกลิงก์แล้ว');
+    notify(t('invite.linkCopied'));
   }, [invite]);
 
   const onShare = useCallback(async () => {
     if (!invite) return;
-    const header = tripName ? `ร่วมทริปกับเรา: ${tripName}` : 'ร่วมทริปกับเรา';
-    await Share.share({ message: `${header}\n${invite.link}\nหรือใช้รหัส: ${invite.code}` });
+    const header = tripName
+      ? t('trip.share.inviteHeaderNamed', { name: tripName })
+      : t('trip.share.inviteHeader');
+    await Share.share({ message: `${header}\n${invite.link}\n${t('invite.orUseCode', { code: invite.code })}` });
   }, [invite, tripName]);
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.backdrop}>
         <View style={styles.sheet}>
-          <Text style={styles.title}>👥 เชิญเพื่อนเข้าทริป</Text>
+          <Text style={styles.title}>👥 {t('invite.title')}</Text>
 
           {loading ? (
             <View style={styles.centered}>
@@ -94,34 +103,34 @@ export function InviteMembersModal({ visible, tripId, tripName, onClose }: Invit
           ) : error ? (
             <View style={styles.centered}>
               <Text style={styles.errorText}>{error}</Text>
-              <Button label="ลองอีกครั้ง" onPress={fetchInvite} style={{ marginTop: spacing.md }} />
+              <Button label={t('common.retry')} onPress={fetchInvite} style={{ marginTop: spacing.md }} />
             </View>
           ) : invite ? (
             <>
-              <Text style={styles.label}>รหัสเชิญ</Text>
+              <Text style={styles.label}>{t('invite.codeLabel')}</Text>
               <View style={styles.codeRow}>
                 <Text style={styles.codeText} selectable>{invite.code}</Text>
                 <TouchableOpacity style={styles.smallBtn} onPress={onCopyCode}>
-                  <Text style={styles.smallBtnText}>📋 คัดลอก</Text>
+                  <Text style={styles.smallBtnText}>📋 {t('invite.copy')}</Text>
                 </TouchableOpacity>
               </View>
 
-              <Text style={styles.label}>ลิงก์เชิญ</Text>
+              <Text style={styles.label}>{t('invite.linkLabel')}</Text>
               <View style={styles.linkRow}>
                 <Text style={styles.linkText} numberOfLines={1} selectable>{invite.link}</Text>
                 <TouchableOpacity style={styles.smallBtn} onPress={onCopyLink}>
-                  <Text style={styles.smallBtnText}>📋 คัดลอก</Text>
+                  <Text style={styles.smallBtnText}>📋 {t('invite.copy')}</Text>
                 </TouchableOpacity>
               </View>
 
-              <Text style={styles.expiry}>ลิงก์หมดอายุ: {formatExpiry(invite.expires_at)}</Text>
+              <Text style={styles.expiry}>{t('invite.expires', { date: formatExpiry(invite.expires_at) })}</Text>
 
-              <Button label="📤 แชร์" fullWidth onPress={onShare} style={{ marginTop: spacing.md }} />
+              <Button label={`📤 ${t('invite.share')}`} fullWidth onPress={onShare} style={{ marginTop: spacing.md }} />
             </>
           ) : null}
 
           <Button
-            label="ปิด"
+            label={t('common.close')}
             variant="ghost"
             fullWidth
             onPress={onClose}

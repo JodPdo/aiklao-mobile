@@ -3,7 +3,7 @@
     "name": "AiKlao",
     "slug": "aiklao-mobile",
     "scheme": "aiklao",
-    "version": "0.4.8",
+    "version": "0.4.9",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "automatic",
@@ -67,7 +67,8 @@
         {
           "faceIDPermission": "$(PRODUCT_NAME) uses Face ID to protect your data"
         }
-      ]
+      ],
+      "expo-localization"
     ],
     "extra": {
       "apiBaseUrl": "https://api.aiklaotrip.com",

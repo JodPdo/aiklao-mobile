@@ -8,6 +8,7 @@
 
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { t } from '@/i18n';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing, typography } from '@/theme';
 import type { Palette } from '@/theme';
@@ -23,7 +24,6 @@ export interface TripStatsCardProps {
 
 interface Column {
   key: string;
-  icon: string;
   label: string;
   value: string;
   unit?: string;
@@ -41,26 +41,23 @@ export function TripStatsCard({ destinationName, distanceKm, etaText }: TripStat
   const columns: Column[] = [
     {
       key: 'dest',
-      icon: '📍',
-      label: 'จุดหมาย',
-      value: hasDest ? destinationName!.trim() : 'ยังไม่ตั้งจุดหมาย',
+      label: t('trip.stats.destination'),
+      value: hasDest ? destinationName!.trim() : t('trip.stats.noDestination'),
       muted: !hasDest,
       metric: false,
     },
     {
       key: 'dist',
-      icon: '🛣️',
-      label: 'ระยะ',
+      label: t('trip.stats.distance'),
       value: hasDist ? distanceKm!.toFixed(1) : '—',
-      unit: hasDist ? 'กม.' : undefined,
+      unit: hasDist ? t('trip.stats.km') : undefined,
       muted: !hasDist,
       metric: true,
     },
     ...(SHOW_ETA
       ? [{
           key: 'eta',
-          icon: '⏱️',
-          label: 'ถึงโดยประมาณ',
+          label: t('trip.stats.eta'),
           value: etaText ?? '—',
           muted: etaText == null,
           metric: true,
@@ -74,7 +71,6 @@ export function TripStatsCard({ destinationName, distanceKm, etaText }: TripStat
         <React.Fragment key={col.key}>
           {i > 0 && <View style={styles.divider} />}
           <View style={styles.col}>
-            <Text style={styles.icon}>{col.icon}</Text>
             <View style={styles.valueRow}>
               <Text
                 style={[
@@ -113,10 +109,6 @@ function makeStyles(c: Palette) {
       justifyContent: 'flex-start',
       paddingHorizontal: spacing.sm,
       gap: 2,
-    },
-    icon: {
-      fontSize: 16,
-      marginBottom: 2,
     },
     valueRow: {
       flexDirection: 'row',

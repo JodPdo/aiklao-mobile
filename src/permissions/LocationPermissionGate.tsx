@@ -8,6 +8,7 @@ import { Linking, StyleSheet, Text, View } from 'react-native';
 import * as Location from 'expo-location';
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
+import { t } from '@/i18n';
 import { useTheme } from '@/theme/ThemeProvider';
 import { spacing, typography } from '@/theme';
 import type { Palette } from '@/theme';
@@ -53,14 +54,12 @@ export function LocationPermissionGate({ children }: LocationPermissionGateProps
     return (
       <Screen padded>
         <View style={styles.center}>
-          <Text style={styles.emoji}>📍</Text>
-          <Text style={styles.title}>Location Required{/* TODO(thai) */}</Text>
+          <Text style={styles.title}>{t('permission.requiredTitle')}</Text>
           <Text style={styles.body}>
-            AiKlao uses your location to track trips in real time while the app is open.
-            {/* TODO(thai) */}
+            {t('permission.requiredBody')}
           </Text>
           <Button
-            label="Allow Location" // TODO(thai)
+            label={t('permission.allow')}
             onPress={requestPermission}
             loading={gateStatus === 'requesting'}
             fullWidth
@@ -75,19 +74,18 @@ export function LocationPermissionGate({ children }: LocationPermissionGateProps
     <Screen padded>
       <View style={styles.center}>
         <Text style={styles.emoji}>🚫</Text>
-        <Text style={styles.title}>Location Permission Denied{/* TODO(thai) */}</Text>
+        <Text style={styles.title}>{t('permission.deniedTitle')}</Text>
         <Text style={styles.body}>
-          Please enable location access in Settings to use AiKlao trip tracking.
-          {/* TODO(thai) */}
+          {t('permission.deniedBody')}
         </Text>
         <Button
-          label="Open Settings" // TODO(thai)
+          label={t('permission.openSettings')}
           onPress={() => Linking.openSettings()}
           fullWidth
           style={{ marginTop: spacing.xl }}
         />
         <Button
-          label="Try Again" // TODO(thai)
+          label={t('common.retry')}
           variant="ghost"
           onPress={requestPermission}
           fullWidth

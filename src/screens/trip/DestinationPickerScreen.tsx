@@ -10,6 +10,7 @@ import * as Location from 'expo-location';
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
 import { LeafletMapView, LeafletData } from '@/components/LeafletMapView';
+import { t } from '@/i18n';
 import { useTheme } from '@/theme/ThemeProvider';
 import { spacing, typography, radius } from '@/theme';
 import type { Palette } from '@/theme';
@@ -17,7 +18,6 @@ import type { HomeStackParamList } from '@/navigation/types';
 
 type NavProp = NativeStackNavigationProp<HomeStackParamList, 'DestinationPicker'>;
 
-const DEFAULT_NAME = 'จุดหมาย';
 const BANGKOK = { lat: 13.7563, lng: 100.5018 };
 
 export function DestinationPickerScreen() {
@@ -25,8 +25,12 @@ export function DestinationPickerScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
 
+  // Localized default destination name — also the value sent to the backend when
+  // the user leaves the name blank.
+  const defaultName = t('destinationPicker.defaultName');
+
   const [selectedCoords, setSelectedCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [destName, setDestName] = useState<string>(DEFAULT_NAME);
+  const [destName, setDestName] = useState<string>(defaultName);
   const [defaultCenter, setDefaultCenter] = useState<{ lat: number; lng: number } | null>(null);
 
   // Default map center = current GPS (one-shot), Bangkok fallback
@@ -62,10 +66,10 @@ export function DestinationPickerScreen() {
 
   const handleConfirm = () => {
     if (!selectedCoords) {
-      Alert.alert('เลือกจุดหมายก่อน', 'แตะที่แผนที่เพื่อเลือกจุดหมายปลายทาง');
+      Alert.alert(t('destinationPicker.noSelectionTitle'), t('destinationPicker.noSelectionBody'));
       return;
     }
-    const finalName = destName.trim() || DEFAULT_NAME;
+    const finalName = destName.trim() || defaultName;
     // Navigate back to the existing CreateTrip instance, merging the result params
     navigation.navigate('CreateTrip', {
       selectedDestination: { name: finalName, lat: selectedCoords.lat, lng: selectedCoords.lng },
@@ -75,7 +79,7 @@ export function DestinationPickerScreen() {
   if (!defaultCenter) {
     return (
       <Screen>
-        <Text style={styles.loading}>กำลังโหลดแผนที่...</Text>
+        <Text style={styles.loading}>{t('destinationPicker.loadingMap')}</Text>
       </Screen>
     );
   }
@@ -83,7 +87,7 @@ export function DestinationPickerScreen() {
   return (
     <Screen padded={false} style={styles.flex}>
       <View style={styles.instruction}>
-        <Text style={styles.instructionText}>💡 แตะแผนที่เพื่อเลือกจุดหมาย</Text>
+        <Text style={styles.instructionText}>💡 {t('destinationPicker.instruction')}</Text>
       </View>
 
       <LeafletMapView
@@ -96,17 +100,17 @@ export function DestinationPickerScreen() {
       {selectedCoords && (
         <View style={styles.form}>
           <View style={styles.coordsCard}>
-            <Text style={styles.coordsLabel}>ตำแหน่งที่เลือก</Text>
+            <Text style={styles.coordsLabel}>{t('destinationPicker.selectedLocation')}</Text>
             <Text style={styles.coordsValue}>
               {selectedCoords.lat.toFixed(5)}, {selectedCoords.lng.toFixed(5)}
             </Text>
           </View>
-          <Text style={styles.label}>ชื่อจุดหมาย</Text>
+          <Text style={styles.label}>{t('destinationPicker.nameLabel')}</Text>
           <TextInput
             style={styles.input}
             value={destName}
             onChangeText={setDestName}
-            placeholder={DEFAULT_NAME}
+            placeholder={defaultName}
             placeholderTextColor={colors.textSecondary}
           />
         </View>
@@ -114,13 +118,13 @@ export function DestinationPickerScreen() {
 
       <View style={styles.footer}>
         <Button
-          label="ยกเลิก"
+          label={t('common.cancel')}
           variant="secondary"
           onPress={() => navigation.goBack()}
           style={styles.footerBtn}
         />
         <Button
-          label="ยืนยัน"
+          label={t('common.confirm')}
           onPress={handleConfirm}
           disabled={!selectedCoords}
           style={styles.footerBtn}

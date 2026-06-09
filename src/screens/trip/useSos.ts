@@ -16,6 +16,7 @@
 import { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 import { triggerSos, cancelSos } from '@/api/client';
+import { t } from '@/i18n';
 import type { SosMarker } from '@/components/LeafletMapView';
 import type { StoredUser } from '@/auth/tokenStorage';
 import { ActiveSos, fmtTimeHHMM } from './tripShared';
@@ -92,9 +93,9 @@ export function useSos({ tripId, activeSos, user, getCoords, refetch }: UseSosPa
       if (e.code === 'ACTIVE_SOS_EXISTS') {
         if (e.existingId) setMySosId(String(e.existingId));
         refetch();
-        Alert.alert('SOS ส่งไปแล้ว', 'คุณมี SOS ที่ยังไม่ยกเลิกอยู่');
+        Alert.alert(t('sos.existsTitle'), t('sos.existsMessage'));
       } else {
-        Alert.alert('ส่ง SOS ไม่สำเร็จ', e.message || 'ลองอีกครั้ง');
+        Alert.alert(t('sos.sendFailed'), e.message || t('common.retry'));
       }
     }
   };
@@ -105,7 +106,7 @@ export function useSos({ tripId, activeSos, user, getCoords, refetch }: UseSosPa
       setMySosId(null);
       refetch();
     } catch (e: any) {
-      Alert.alert('ยกเลิกไม่สำเร็จ', e.message || 'ลองอีกครั้ง');
+      Alert.alert(t('sos.cancelFailed'), e.message || t('common.retry'));
     }
   };
 
@@ -114,26 +115,26 @@ export function useSos({ tripId, activeSos, user, getCoords, refetch }: UseSosPa
   const handleSosPress = () => {
     const coords = getCoords();
     if (!coords) {
-      Alert.alert('ส่ง SOS ไม่ได้', 'ยังไม่มีพิกัดของคุณในระบบ');
+      Alert.alert(t('sos.noCoordsTitle'), t('sos.noCoordsMessage'));
       return;
     }
     Alert.alert(
-      '🚨 ยืนยันส่งสัญญาณ SOS?',
-      'สมาชิกทุกคนในทริปจะได้รับแจ้งเตือนทันที พร้อมตำแหน่งปัจจุบันของคุณ',
+      t('sos.confirmTitle'),
+      t('sos.confirmMessage'),
       [
-        { text: 'ยกเลิก', style: 'cancel' },
-        { text: 'ส่ง SOS', style: 'destructive', onPress: () => handleSosConfirm(coords) },
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('sos.confirmSend'), style: 'destructive', onPress: () => handleSosConfirm(coords) },
       ],
     );
   };
 
   const handleSosCancelPress = (sosId: string) => {
     Alert.alert(
-      'ยืนยันยกเลิก SOS?',
-      'สมาชิกทุกคนจะเห็นว่า SOS ของคุณถูกยกเลิก',
+      t('sos.cancelTitle'),
+      t('sos.cancelMessage'),
       [
-        { text: 'ไม่', style: 'cancel' },
-        { text: 'ยกเลิก SOS', style: 'destructive', onPress: () => handleSosCancel(sosId) },
+        { text: t('sos.cancelNo'), style: 'cancel' },
+        { text: t('sos.cancelConfirm'), style: 'destructive', onPress: () => handleSosCancel(sosId) },
       ],
     );
   };

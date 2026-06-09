@@ -3,6 +3,7 @@ import { Alert, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
 import { useAuth } from '@/auth/AuthContext';
+import { t } from '@/i18n';
 import { useTheme } from '@/theme/ThemeProvider';
 import { spacing, typography } from '@/theme';
 import type { Palette } from '@/theme';
@@ -19,8 +20,8 @@ export function LoginScreen() {
       await signInWithLine();
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : 'เข้าสู่ระบบไม่สำเร็จ';
-      Alert.alert('ผิดพลาด', message);
+        err instanceof Error ? err.message : t('login.signInFailed');
+      Alert.alert(t('login.errorTitle'), message);
     } finally {
       setLoading(false);
     }
@@ -31,19 +32,19 @@ export function LoginScreen() {
       <View style={styles.hero}>
         <Text style={styles.title}>AiKlao</Text>
         <Text style={styles.subtitle}>
-          ติดตามทริปของคุณแบบ realtime
+          {t('login.subtitle')}
         </Text>
       </View>
 
       <View style={styles.actions}>
         <Button
-          label="เข้าสู่ระบบด้วย LINE"
+          label={t('login.signInWithLine')}
           onPress={handleLogin}
           loading={loading}
           fullWidth
         />
         <Text style={styles.note}>
-          ใช้บัญชี LINE เดียวกับที่คุณใช้ใน LIFF — trip ของคุณจะ sync อัตโนมัติ
+          {t('login.note')}
         </Text>
       </View>
     </Screen>

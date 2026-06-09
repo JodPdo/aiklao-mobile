@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { Linking, StyleSheet, Text, View } from 'react-native';
 import * as Location from 'expo-location';
 import { Button } from '@/components/Button';
+import { t } from '@/i18n';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing, typography } from '@/theme';
 import type { Palette } from '@/theme';
@@ -40,13 +41,13 @@ export function BackgroundPermissionPrompt({
     <View style={styles.banner}>
       <Text style={styles.icon}>🟡</Text>
       <View style={styles.textBlock}>
-        <Text style={styles.title}>Background tracking off{/* TODO(thai) */}</Text>
-        <Text style={styles.body}>Locations pause when app is in background.{/* TODO(thai) */}</Text>
+        <Text style={styles.title}>{t('home.bgPrompt.title')}</Text>
+        <Text style={styles.body}>{t('home.bgPrompt.body')}</Text>
       </View>
       <View style={styles.actions}>
         {status === 'undetermined' ? (
           <Button
-            label="Enable" // TODO(thai)
+            label={t('home.bgPrompt.enable')}
             variant="secondary"
             onPress={handleGrant}
             loading={isRequesting}
@@ -54,7 +55,7 @@ export function BackgroundPermissionPrompt({
           />
         ) : (
           <Button
-            label="Settings" // TODO(thai)
+            label={t('home.bgPrompt.settings')}
             variant="ghost"
             onPress={() => Linking.openSettings()}
           />

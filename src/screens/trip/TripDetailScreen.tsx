@@ -6,10 +6,8 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
-  Share,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import * as Location from 'expo-location';
@@ -23,12 +21,11 @@ import { Button } from '@/components/Button';
 import type { LeafletData } from '@/components/LeafletMapView';
 import { InviteMembersModal } from '@/components/InviteMembersModal';
 import { useAuth } from '@/auth/AuthContext';
-import { api, createInvite } from '@/api/client';
+import { t } from '@/i18n';
+import { api } from '@/api/client';
 import {
-  startBackgroundTracking,
   stopBackgroundTracking,
   getActiveTripId,
-  restartBackgroundTracking,
 } from '@/services/locationTask';
 import { usePowerSaveMode } from '@/hooks/usePowerSaveMode';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -38,7 +35,7 @@ import type { HomeStackParamList, AppTabParamList } from '@/navigation/types';
 import { TripHeader } from './components/TripHeader';
 import { TripMapView } from './components/TripMapView';
 import { TripStatsCard } from './components/TripStatsCard';
-import { MemberList } from './components/MemberList';
+import { MembersSheet } from './components/MembersSheet';
 import { TripActionBar } from './components/TripActionBar';
 import { TripData } from './tripShared';
 import { useSos, SosCoords } from './useSos';
@@ -59,14 +56,14 @@ export function TripDetailScreen() {
   const { tripId } = route.params;
 
   const { colors } = useTheme();
-  const { height: windowHeight } = useWindowDimensions();
-  const { powerSave, batteryLevel, togglePowerSave } = usePowerSaveMode();
+  const { powerSave, batteryLevel } = usePowerSaveMode();
 
   const [data, setData] = useState<TripData | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTripId, setActiveTripId] = useState<string | null>(null);
   const [showInvite, setShowInvite] = useState(false);
+  const [showMembers, setShowMembers] = useState(false);
   // One-shot self-position fallback for SOS coords (mirrors MapScreen) — used when
   // the caller has no lastLocation yet so SOS still works.
   const [selfPosition, setSelfPosition] = useState<{ lat: number; lng: number } | null>(null);
@@ -86,11 +83,11 @@ export function TripDetailScreen() {
     } catch (err: any) {
       if (err?.response?.status === 401) return;
       if (err?.response?.status === 403) {
-        setError('คุณไม่ได้เป็นสมาชิกของทริปนี้');
+        setError(t('trip.error.notMember'));
       } else if (err?.response?.status === 404) {
-        setError('ไม่พบทริป');
+        setError(t('trip.error.notFound'));
       } else {
-        setError('โหลดข้อมูลไม่สำเร็จ');
+        setError(t('trip.error.loadFailed'));
       }
     }
   }, [tripId]);
@@ -176,82 +173,14 @@ export function TripDetailScreen() {
     setRefreshing(false);
   }
 
-  async function handleToggleMode() {
-    await togglePowerSave();
-    if (isSharing) {
-      try {
-        await restartBackgroundTracking();
-      } catch (err: any) {
-        console.log('[trip-detail] restart bg failed:', err?.message ?? err);
-      }
-    }
-  }
-
-  async function handleShareLocation() {
-    if (isArchived) return;
-    const current = await getActiveTripId();
-    setActiveTripId(current);
-    if (current === tripId) return;
-
-    if (current != null && current !== tripId) {
-      Alert.alert(
-        'หยุดทริปอื่นและเริ่มทริปนี้?',
-        'ทริปที่กำลังแชร์อยู่จะถูกหยุด',
-        [
-          { text: 'ยกเลิก', style: 'cancel' },
-          {
-            text: 'เริ่มแชร์',
-            onPress: async () => {
-              await stopBackgroundTracking();
-              try {
-                await startBackgroundTracking(tripId);
-              } catch (err: any) {
-                console.log('[trip-detail] bg start failed:', err?.message ?? err);
-              }
-              setActiveTripId(tripId);
-              navigation.navigate('MapScreen', { tripId });
-            },
-          },
-        ],
-      );
-      return;
-    }
-
-    try {
-      await startBackgroundTracking(tripId);
-    } catch (err: any) {
-      console.log('[trip-detail] bg start failed (foreground-only):', err?.message ?? err);
-    }
-    setActiveTripId(tripId);
-    navigation.navigate('MapScreen', { tripId });
-  }
-
-  // Header "แชร์" — quick share of the invite link via the native OS share sheet.
-  // Leader-only (createInvite is 403 for non-leaders); the call reuses the active
-  // invite, so tapping repeatedly is safe (no token spam). เชิญ stays the modal.
-  async function handleShareInvite() {
-    try {
-      const invite = await createInvite(tripId);
-      const header = data?.trip.name ? `ร่วมทริปกับเรา: ${data.trip.name}` : 'ร่วมทริปกับเรา';
-      await Share.share({ message: `${header}\n${invite.link}` });
-    } catch (err: any) {
-      if (err?.response?.status === 401) return;
-      if (err?.response?.status === 403) {
-        Alert.alert('แชร์ไม่ได้', 'เฉพาะหัวหน้าทริปเท่านั้นที่เชิญเพื่อนได้');
-      } else {
-        Alert.alert('แชร์ลิงก์ไม่สำเร็จ', 'ลองอีกครั้ง');
-      }
-    }
-  }
-
   async function handleEndTrip() {
     Alert.alert(
-      'จบทริปนี้?',
-      'การกระทำนี้ไม่สามารถยกเลิกได้',
+      t('trip.endTrip.title'),
+      t('trip.endTrip.message'),
       [
-        { text: 'ยกเลิก', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'จบทริป',
+          text: t('trip.endTrip.confirm'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -261,7 +190,7 @@ export function TripDetailScreen() {
               await load();
             } catch (err: any) {
               if (err?.response?.status === 401) return;
-              Alert.alert('ไม่สามารถจบทริปได้', err?.message || 'ลองอีกครั้ง');
+              Alert.alert(t('trip.endTrip.failed'), err?.message || t('common.retry'));
             }
           },
         },
@@ -273,14 +202,12 @@ export function TripDetailScreen() {
     return (
       <Screen padded={false} style={styles.flex}>
         <TripHeader
-          tripName="รายละเอียดทริป"
+          tripName={t('trip.title')}
           onBack={() => navigation.goBack()}
-          powerSave={powerSave}
-          onTogglePowerSave={handleToggleMode}
         />
         <View style={styles.centered}>
           <Text style={styles.errorText}>{error}</Text>
-          <Button label="ลองอีกครั้ง" onPress={load} style={{ marginTop: spacing.lg }} />
+          <Button label={t('common.retry')} onPress={load} style={{ marginTop: spacing.lg }} />
         </View>
       </Screen>
     );
@@ -290,21 +217,18 @@ export function TripDetailScreen() {
     return (
       <Screen padded={false} style={styles.flex}>
         <TripHeader
-          tripName="รายละเอียดทริป"
+          tripName={t('trip.title')}
           onBack={() => navigation.goBack()}
-          powerSave={powerSave}
-          onTogglePowerSave={handleToggleMode}
         />
         <View style={styles.centered}>
-          <Text style={styles.mutedText}>กำลังโหลด...</Text>
+          <Text style={styles.mutedText}>{t('trip.loading')}</Text>
         </View>
       </Screen>
     );
   }
 
-  // Map block (now fixed under the header, ~40% of the screen) — markers for every
-  // member with a location, plus the destination. Same data shape the mini-map used.
-  const mapHeight = Math.round(windowHeight * 0.4);
+  // Map block (fills ~70% of the viewport via flex — see styles.mapWrap). Markers
+  // for every member with a location, plus the destination.
   const selfCoords = callerMember?.lastLocation
     ? { lat: callerMember.lastLocation.lat, lng: callerMember.lastLocation.lng }
     : undefined;
@@ -325,53 +249,42 @@ export function TripDetailScreen() {
     sosMarkers: sosVisible ? sos.sosMarkers : undefined,   // all members' active SOS
   };
 
-  // Phase 6.5 arrival summary — surfaced in the members card header (null = hidden)
-  const arrivedCount = data.members.filter(m => m.arrivedAt).length;
-  const memberCount = data.members.length;
-  const arrivalSummaryText =
-    arrivedCount === 0
-      ? null
-      : arrivedCount === memberCount
-        ? `✅ ทุกคนถึงจุดหมายแล้ว (${memberCount})`
-        : `🚗 ถึงแล้ว ${arrivedCount}/${memberCount} · ยังไม่ถึง ${memberCount - arrivedCount}`;
-
   return (
     <Screen padded={false} style={styles.flex}>
       <TripHeader
         tripName={data.trip.name}
         onBack={() => navigation.goBack()}
-        powerSave={powerSave}
-        onTogglePowerSave={handleToggleMode}
         status={data.trip.status}
         isWaiting={isEmpty}
         startedAtIso={data.trip.createdAt}
-        onShare={callerMember?.isLeader ? handleShareInvite : undefined}
       />
 
       {/* Active-SOS banner — self only, active trips only; above the map (mirrors MapScreen) */}
       {sosVisible && sos.mySosId && (
         <View style={styles.sosBanner}>
-          <Text style={styles.sosBannerText}>🚨 SOS ACTIVE · {sos.sosTimeHHMM}</Text>
+          <Text style={styles.sosBannerText}>{t('sos.bannerActive', { time: sos.sosTimeHHMM })}</Text>
           <Pressable onPress={() => sos.handleSosCancelPress(sos.mySosId!)} hitSlop={12}>
-            <Text style={styles.sosBannerCancel}>ยกเลิก ✕</Text>
+            <Text style={styles.sosBannerCancel}>{t('common.cancel')} ✕</Text>
           </Pressable>
         </View>
       )}
 
-      {/* Map — directly under the header, fixed ~40% height (overlays + SOS slot inside) */}
-      <TripMapView
-        data={mapData}
-        height={mapHeight}
-        powerSave={powerSave}
-        live={!isEmpty}
-        destination={data.trip.destination}
-        recenterTo={recenter.to}
-        recenterToken={recenter.token}
-        onRecenter={selfCoords ? () => focusOnMap(selfCoords) : undefined}
-        activeSosId={sosVisible ? sos.mySosId : null}
-        onSosPress={sosVisible ? sos.handleSosPress : undefined}
-        onCancelSos={sos.handleSosCancelPress}
-      />
+      {/* Map — under the header, ~70% of the viewport via flex (mapWrap flex 7 :
+          scroll flex 1). Overlays + SOS slot live inside TripMapView. */}
+      <View style={styles.mapWrap}>
+        <TripMapView
+          data={mapData}
+          powerSave={powerSave}
+          live={!isEmpty}
+          destination={data.trip.destination}
+          recenterTo={recenter.to}
+          recenterToken={recenter.token}
+          onRecenter={selfCoords ? () => focusOnMap(selfCoords) : undefined}
+          activeSosId={sosVisible ? sos.mySosId : null}
+          onSosPress={sosVisible ? sos.handleSosPress : undefined}
+          onCancelSos={sos.handleSosCancelPress}
+        />
+      </View>
 
       <ScrollView
         style={styles.scroll}
@@ -397,47 +310,42 @@ export function TripDetailScreen() {
         {isEmpty && !powerSave && (
           <View style={styles.ctaBanner}>
             <Text style={styles.ctaBannerText}>
-              ยังไม่มีใครแชร์ตำแหน่ง — กด "📍 เริ่มแชร์ตำแหน่ง" ด้านล่างเพื่อเริ่ม
+              {t('trip.emptyCta')}
             </Text>
           </View>
         )}
 
-        {/* Members card — header (สมาชิก N + เชิญ) · rows · เพิ่มสมาชิก.
-            เชิญ/เพิ่มสมาชิก are leader-only and reuse the existing InviteMembersModal. */}
-        <MemberList
-          members={data.members}
-          selfLineUserId={user?.lineUserId}
-          summary={arrivalSummaryText}
-          onInvite={callerMember?.isLeader ? () => setShowInvite(true) : undefined}
-          onMemberPress={
-            powerSave
-              ? undefined   // map is a placeholder in power-save — nothing to recenter
-              : (m) => m.lastLocation && focusOnMap({ lat: m.lastLocation.lat, lng: m.lastLocation.lng })
-          }
-        />
-
         {/* Caption — auto-refresh cadence (mode-aware: preserves power-save messaging) */}
         <Text style={styles.refreshCaption}>
           {powerSave
-            ? `🔋 โหมดประหยัด${batteryLevel !== null ? ` (${Math.round(batteryLevel * 100)}%)` : ''} · ดึงลงเพื่อรีเฟรชเท่านั้น`
-            : 'ตำแหน่งอัปเดตอัตโนมัติทุก 60 วินาที'}
+            ? `🔋 ${t('trip.caption.powerSave', { battery: batteryLevel !== null ? ` (${Math.round(batteryLevel * 100)}%)` : '' })}`
+            : t('trip.caption.autoRefresh')}
         </Text>
 
         <View style={{ height: spacing.xl }} />
       </ScrollView>
 
-      {/* Sticky action bar — hidden for archived trips (unchanged) */}
+      {/* Sticky action bar — hidden for archived trips */}
       {!isArchived && (
         <TripActionBar
-          isSharing={isSharing}
+          memberCount={data.members.length}
           canInvite={!!callerMember?.isLeader}
           canStop={canStop}
           bottomInset={Math.max(insets.bottom, spacing.lg)}
-          onShareLocation={handleShareLocation}
+          onMembers={() => setShowMembers(true)}
           onInvite={() => setShowInvite(true)}
           onEndTrip={handleEndTrip}
         />
       )}
+
+      {/* Members sheet — opened by the action bar; its header เชิญ swaps to the invite modal */}
+      <MembersSheet
+        visible={showMembers}
+        members={data.members}
+        selfLineUserId={user?.lineUserId}
+        onInvite={callerMember?.isLeader ? () => { setShowMembers(false); setShowInvite(true); } : undefined}
+        onClose={() => setShowMembers(false)}
+      />
 
       <InviteMembersModal
         visible={showInvite}
@@ -471,6 +379,11 @@ function makeStyles(c: Palette) {
     },
     sosBannerText: { color: '#fff', fontSize: 15, fontWeight: '700' },
     sosBannerCancel: { color: '#fff', fontSize: 14, textDecorationLine: 'underline' },
+
+    // Map region — flex 7 against the ScrollView's flex 1 ⇒ map ≈ 70% of the
+    // viewport (the rest is header + action bar + the scrollable content). No
+    // hardcoded pixel height; SafeArea handled by Screen (top) + action bar (bottom).
+    mapWrap: { flex: 7 },
 
     // ScrollView
     scroll: { flex: 1 },

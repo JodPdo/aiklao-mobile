@@ -9,6 +9,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Avatar } from './Avatar';
 import { Member, fmtTimeHHMM, formatRelativeTime } from '../tripShared';
+import { t } from '@/i18n';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing, typography } from '@/theme';
 import type { Palette } from '@/theme';
@@ -24,17 +25,17 @@ export function MemberRow({ member, isSelf = false, onPress }: MemberRowProps) {
   const styles = makeStyles(colors);
 
   const subtitle = member.arrivedAt
-    ? `✅ ถึงเมื่อ ${fmtTimeHHMM(member.arrivedAt)}`
+    ? t('trip.member.arrivedAt', { time: fmtTimeHHMM(member.arrivedAt) })
     : member.lastLocation
-      ? `อัปเดตเมื่อ ${formatRelativeTime(member.lastLocation.createdAt)}`
-      : 'ยังไม่ได้แชร์ตำแหน่ง';
+      ? t('trip.member.updatedAt', { time: formatRelativeTime(member.lastLocation.createdAt) })
+      : t('trip.member.noLocation');
 
   const inner = (
     <>
       <Avatar member={member} size={40} />
       <View style={styles.info}>
         <Text style={styles.name} numberOfLines={1}>
-          {member.displayName}{isSelf ? ' (คุณ)' : ''}
+          {member.displayName}{isSelf ? ` ${t('trip.member.you')}` : ''}
         </Text>
         <Text
           style={[styles.subtitle, member.arrivedAt && styles.subtitleArrived]}
@@ -45,7 +46,7 @@ export function MemberRow({ member, isSelf = false, onPress }: MemberRowProps) {
       </View>
       {member.isLeader && (
         <View style={styles.leaderBadge}>
-          <Text style={styles.leaderText}>หัวหน้า</Text>
+          <Text style={styles.leaderText}>{t('trip.member.leader')}</Text>
         </View>
       )}
       {/* Chevron only when tappable — nothing to center on without a location */}

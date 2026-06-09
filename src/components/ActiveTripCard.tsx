@@ -4,6 +4,7 @@
 
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { t } from '@/i18n';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing, typography } from '@/theme';
 import type { Palette } from '@/theme';
@@ -27,11 +28,11 @@ export function ActiveTripCard({
       onPress={onPress}
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
       accessibilityRole="button"
-      accessibilityLabel={`เปิดทริปกำลังทำงาน: ${name}`}
+      accessibilityLabel={t('home.activeTripCard.a11yOpen', { name })}
     >
       <View style={styles.header}>
         <Text style={styles.headerEmoji}>🚗</Text>
-        <Text style={styles.headerLabel}>ทริปกำลังทำงาน</Text>
+        <Text style={styles.headerLabel}>{t('home.activeTripCard.label')}</Text>
       </View>
 
       <Text style={styles.tripName} numberOfLines={1}>
@@ -40,7 +41,7 @@ export function ActiveTripCard({
 
       <View style={styles.metaRow}>
         {typeof memberCount === 'number' && (
-          <Text style={styles.metaText}>👥 {memberCount} สมาชิก</Text>
+          <Text style={styles.metaText}>👥 {t('home.activeTripCard.members', { count: memberCount })}</Text>
         )}
         {lastUpdateText && (
           <Text style={styles.metaText}>🟢 {lastUpdateText}</Text>
@@ -48,7 +49,7 @@ export function ActiveTripCard({
       </View>
 
       <View style={styles.cta}>
-        <Text style={styles.ctaText}>เปิดทริป →</Text>
+        <Text style={styles.ctaText}>{t('home.activeTripCard.open')}</Text>
       </View>
     </Pressable>
   );

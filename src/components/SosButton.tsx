@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
+import { t } from '@/i18n';
 
 export interface SosButtonProps {
   /** Called when user taps the idle button. Parent shows confirm Alert. */
@@ -30,9 +31,9 @@ export function SosButton({
           { width: size * 1.8, height: size, opacity: disabled ? 0.5 : 1 },
         ]}
         accessibilityRole="button"
-        accessibilityLabel="ยกเลิก SOS"
+        accessibilityLabel={t('sos.a11yCancel')}
       >
-        <Text style={styles.cancelText}>❌ ยกเลิก SOS</Text>
+        <Text style={styles.cancelText}>{t('sos.buttonCancel')}</Text>
       </Pressable>
     );
   }
@@ -48,7 +49,7 @@ export function SosButton({
       ]}
       android_ripple={{ color: 'rgba(255,255,255,0.3)', borderless: true }}
       accessibilityRole="button"
-      accessibilityLabel="ส่งสัญญาณ SOS"
+      accessibilityLabel={t('sos.a11ySend')}
     >
       <Text style={[styles.sosLabel, { fontSize: size * 0.5 }]}>🚨</Text>
     </Pressable>

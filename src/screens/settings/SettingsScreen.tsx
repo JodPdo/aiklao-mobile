@@ -1,7 +1,8 @@
 // src/screens/settings/SettingsScreen.tsx
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
+  Image,
   ScrollView,
   StyleSheet,
   Switch,
@@ -10,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { Screen } from '@/components/Screen';
+import { t } from '@/i18n';
 import { useAuth } from '@/auth/AuthContext';
 import { useTheme } from '@/theme/ThemeProvider';
 import { usePowerSaveMode } from '@/hooks/usePowerSaveMode';
@@ -83,16 +85,16 @@ function PowerSaveRow({ active, onToggle, colors, isDark }: PowerSaveRowProps) {
       <View style={staticStyles.rowBody}>
         <View style={staticStyles.powerLabelRow}>
           <Text style={[staticStyles.rowLabel, { color: colors.textPrimary }]}>
-            โหมดประหยัดพลังงาน
+            {t('settings.powerSave.label')}
           </Text>
           {active && (
             <View style={staticStyles.powerBadge}>
-              <Text style={staticStyles.powerBadgeText}>เปิดอยู่</Text>
+              <Text style={staticStyles.powerBadgeText}>{t('settings.on')}</Text>
             </View>
           )}
         </View>
         <Text style={[staticStyles.rowSub, { color: colors.textSecondary }]}>
-          ลดการใช้แบตในทริปยาว · POST ทุก 30 วินาที
+          {t('settings.powerSave.sub')}
         </Text>
       </View>
       <Switch
@@ -114,6 +116,14 @@ export function SettingsScreen() {
 
   const styles = makeStyles(colors);
 
+  // Profile avatar: LINE picture with initial-letter fallback. The fallback letter
+  // is derived from the SAME resolved name shown below (so a guest's avatar + name
+  // come from one source — resolves the STEP-2c 'G'-vs-ผู้เยือน mismatch).
+  const displayName = user?.displayName?.trim() || t('settings.guest');
+  const avatarLetter = displayName.charAt(0).toUpperCase();
+  const [avatarFailed, setAvatarFailed] = useState(false);
+  const showAvatarImage = !!user?.pictureUrl && !avatarFailed;
+
   // Dark mode Switch: 'dark' = on, 'auto' = off (follow device)
   const darkOn = isDark;  // reflects resolved state, not just pref (avoids 'auto' ambiguity)
   function handleDarkToggle(next: boolean) {
@@ -129,34 +139,37 @@ export function SettingsScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Settings</Text>
-          <Text style={styles.subtitle}>จัดการการตั้งค่าของคุณ</Text>
+          <Text style={styles.title}>{t('settings.title')}</Text>
+          <Text style={styles.subtitle}>{t('settings.subtitle')}</Text>
         </View>
 
         {/* Profile card */}
         <View style={styles.profileCard}>
-          <View style={styles.avatarLarge}>
-            <Text style={styles.avatarLetter}>
-              {(user?.displayName ?? 'G').charAt(0).toUpperCase()}
-            </Text>
-          </View>
+          {showAvatarImage ? (
+            <Image
+              source={{ uri: user!.pictureUrl! }}
+              style={styles.avatarImage}
+              onError={() => setAvatarFailed(true)}
+            />
+          ) : (
+            <View style={styles.avatarLarge}>
+              <Text style={styles.avatarLetter}>{avatarLetter}</Text>
+            </View>
+          )}
           <View style={styles.profileTextWrap}>
-            <Text style={styles.profileName}>{user?.displayName ?? 'Guest'}</Text>
+            <Text style={styles.profileName}>{displayName}</Text>
             <View style={styles.profileStatusRow}>
-              <View style={styles.premiumBadge}>
-                <Text style={styles.premiumBadgeText}>★ Premium</Text>
-              </View>
-              <Text style={styles.profileStatusText}>· พร้อมทริป</Text>
+              <Text style={styles.profileStatusText}>{t('settings.statusReady')}</Text>
             </View>
           </View>
         </View>
 
-        {/* Section: บัญชี */}
-        <SectionTitle title="บัญชี" colors={colors} />
+        {/* Section: Account */}
+        <SectionTitle title={t('settings.section.account')} colors={colors} />
         <View style={styles.sectionCard}>
           <SettingsRow
             icon="👤"
-            label="โปรไฟล์"
+            label={t('settings.profile')}
             value={user?.displayName ?? '—'}
             showChevron
             colors={colors}
@@ -164,24 +177,24 @@ export function SettingsScreen() {
           />
           <SettingsRow
             icon="📱"
-            label="อุปกรณ์ที่เชื่อมต่อ"
-            value="1 เครื่อง"
+            label={t('settings.connectedDevices')}
+            value={t('settings.deviceCount', { count: 1 })}
             showChevron
             colors={colors}
             onPress={() => {}}
           />
           <SettingsRow
             icon="🔔"
-            label="การแจ้งเตือน"
-            value="เปิดอยู่"
+            label={t('settings.notifications')}
+            value={t('settings.on')}
             showChevron
             colors={colors}
             onPress={() => {}}
           />
         </View>
 
-        {/* Section: ตั้งค่า */}
-        <SectionTitle title="ตั้งค่า" colors={colors} />
+        {/* Section: Preferences */}
+        <SectionTitle title={t('settings.section.preferences')} colors={colors} />
         <View style={styles.sectionCard}>
           <PowerSaveRow
             active={powerSave}
@@ -191,8 +204,8 @@ export function SettingsScreen() {
           />
           <SettingsRow
             icon="🌙"
-            label="โหมดมืด"
-            sub="โทนสีเข้ม · ลด OLED battery"
+            label={t('settings.darkMode.label')}
+            sub={t('settings.darkMode.sub')}
             rightControl={
               <Switch
                 value={darkOn}
@@ -205,27 +218,27 @@ export function SettingsScreen() {
           />
           <SettingsRow
             icon="🛡️"
-            label="ความเป็นส่วนตัว"
-            value="จัดการ"
+            label={t('settings.privacy')}
+            value={t('settings.manage')}
             showChevron
             colors={colors}
             onPress={() => {}}
           />
         </View>
 
-        {/* Section: ช่วยเหลือ */}
-        <SectionTitle title="ช่วยเหลือ" colors={colors} />
+        {/* Section: Help */}
+        <SectionTitle title={t('settings.section.help')} colors={colors} />
         <View style={styles.sectionCard}>
           <SettingsRow
             icon="❓"
-            label="ช่วยเหลือ & FAQ"
+            label={t('settings.helpFaq')}
             showChevron
             colors={colors}
             onPress={() => {}}
           />
           <SettingsRow
             icon="↪"
-            label="ออกจากระบบ"
+            label={t('settings.signOut')}
             isSignOut
             showChevron
             colors={colors}
@@ -347,6 +360,11 @@ function makeStyles(c: Palette) {
       justifyContent: 'center',
       alignItems: 'center',
     },
+    avatarImage: {
+      width: 52,
+      height: 52,
+      borderRadius: 26,    // circular LINE profile picture
+    },
     avatarLetter: {
       color: '#fff',
       fontSize: 19,
@@ -363,17 +381,6 @@ function makeStyles(c: Palette) {
       alignItems: 'center',
       gap: spacing.xs,
       marginTop: 3,
-    },
-    premiumBadge: {
-      backgroundColor: c.warning,
-      borderRadius: 8,
-      paddingHorizontal: 7,
-      paddingVertical: 1,
-    },
-    premiumBadgeText: {
-      ...typography.caption,
-      color: '#fff',
-      fontSize: 10,
     },
     profileStatusText: {
       ...typography.caption,

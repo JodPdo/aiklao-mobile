@@ -14,6 +14,7 @@ import {
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
+import { t } from '@/i18n';
 import { api } from '@/api/client';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing, typography } from '@/theme';
@@ -43,7 +44,7 @@ function StatusBadge({ status }: { status: string }) {
         staticBadgeStyles.label,
         { color: active ? colors.primary : colors.textSecondary },
       ]}>
-        {active ? 'Active' : 'Archived'}{/* TODO(thai) */}
+        {active ? t('trips.status.active') : t('trips.status.archived')}
       </Text>
     </View>
   );
@@ -72,7 +73,7 @@ export function TripsScreen() {
       setTrips(res.data.trips);
     } catch (err: any) {
       if (err?.response?.status === 401) return;
-      setError('Could not load trips. Check your connection.'); // TODO(thai)
+      setError(t('trips.loadError'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -110,12 +111,12 @@ export function TripsScreen() {
           </Text>
           <Text style={styles.metaDot}> · </Text>
           <Text style={styles.metaText}>
-            {item.memberCount} member{item.memberCount !== 1 ? 's' : ''}{/* TODO(thai) */}
+            {t('trips.members', { count: item.memberCount })}
           </Text>
           {item.isLeader && (
             <>
               <Text style={styles.metaDot}> · </Text>
-              <Text style={styles.leaderText}>Leader{/* TODO(thai) */}</Text>
+              <Text style={styles.leaderText}>{t('trips.leader')}</Text>
             </>
           )}
         </View>
@@ -126,7 +127,7 @@ export function TripsScreen() {
   if (loading) {
     return (
       <Screen padded background="alt">
-        <Text style={styles.title}>My Trips{/* TODO(thai) */}</Text>
+        <Text style={styles.title}>{t('trips.title')}</Text>
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -137,11 +138,11 @@ export function TripsScreen() {
   if (error) {
     return (
       <Screen padded background="alt">
-        <Text style={styles.title}>My Trips{/* TODO(thai) */}</Text>
+        <Text style={styles.title}>{t('trips.title')}</Text>
         <View style={styles.center}>
           <Text style={styles.errorText}>{error}</Text>
           <Button
-            label="Retry" // TODO(thai)
+            label={t('common.retry')}
             variant="secondary"
             onPress={() => fetchTrips()}
             style={{ marginTop: spacing.lg }}
@@ -153,7 +154,7 @@ export function TripsScreen() {
 
   return (
     <Screen padded background="alt">
-      <Text style={styles.title}>My Trips{/* TODO(thai) */}</Text>
+      <Text style={styles.title}>{t('trips.title')}</Text>
       <FlatList
         style={styles.list}
         data={trips}
@@ -169,9 +170,9 @@ export function TripsScreen() {
         }
         ListEmptyComponent={
           <View style={styles.emptyInner}>
-            <Text style={styles.emptyTitle}>No trips yet{/* TODO(thai) */}</Text>
+            <Text style={styles.emptyTitle}>{t('trips.empty.title')}</Text>
             <Text style={styles.emptyBody}>
-              Your trips will appear here once you start tracking.{/* TODO(thai) */}
+              {t('trips.empty.body')}
             </Text>
           </View>
         }
