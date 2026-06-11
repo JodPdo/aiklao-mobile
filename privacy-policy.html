@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AiKlao — Privacy Policy / นโยบายความเป็นส่วนตัว</title>
+<meta name="description" content="Privacy Policy for the AiKlao app / นโยบายความเป็นส่วนตัวของแอป AiKlao">
+<style>
+  :root{ --accent:#1d4ed8; --ink:#1f2530; --muted:#5b6370; --line:#e3e6ea; --bg:#ffffff; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:#f5f7fa; color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Sarabun","Noto Sans Thai",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.65; }
+  .wrap{ max-width:820px; margin:0 auto; padding:24px 18px 60px; }
+  header.top{ background:#fff; border:1px solid var(--line); border-radius:14px; padding:22px 24px; margin-bottom:18px; }
+  h1{ font-size:1.5rem; margin:0 0 4px; color:var(--accent); }
+  .meta{ color:var(--muted); font-size:.9rem; margin:2px 0; }
+  .meta a{ color:var(--accent); }
+  .toggle{ margin-top:14px; display:flex; gap:8px; }
+  .toggle button{ font:inherit; font-size:.9rem; cursor:pointer; padding:7px 16px; border-radius:999px;
+    border:1px solid var(--line); background:#fff; color:var(--muted); }
+  .toggle button.active{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  article{ background:#fff; border:1px solid var(--line); border-radius:14px; padding:8px 26px 26px; }
+  h2{ font-size:1.12rem; margin:26px 0 8px; padding-bottom:6px; border-bottom:2px solid var(--line); color:var(--ink); }
+  h2:first-of-type{ margin-top:18px; }
+  p,li{ font-size:.97rem; }
+  ul{ padding-left:20px; }
+  li{ margin:5px 0; }
+  blockquote{ margin:14px 0; padding:10px 14px; background:#eef4ff; border-left:4px solid var(--accent);
+    border-radius:8px; color:#33415a; font-size:.92rem; }
+  .note{ color:var(--muted); font-style:italic; }
+  code{ background:#f1f3f6; padding:1px 5px; border-radius:5px; font-size:.85em; }
+  footer{ text-align:center; color:var(--muted); font-size:.82rem; margin-top:22px; }
+  @media (prefers-color-scheme:dark){
+    body{ background:#0f1216; color:#e6e9ee; }
+    header.top,article{ background:#171b21; border-color:#2a2f37; }
+    h2{ color:#e6e9ee; border-color:#2a2f37; }
+    .toggle button{ background:#171b21; border-color:#2a2f37; color:#aab2bd; }
+    blockquote{ background:#16243f; color:#cdd9ee; }
+    code{ background:#222831; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>AiKlao — Privacy Policy</h1>
+    <p class="meta">นโยบายความเป็นส่วนตัว · real-time group trip tracking via LINE</p>
+    <p class="meta">Last updated / ปรับปรุงล่าสุด: <strong>11 June 2026</strong></p>
+    <p class="meta">Contact / ติดต่อ: <a href="mailto:fontong.jod.aekkarut@gmail.com">fontong.jod.aekkarut@gmail.com</a></p>
+    <div class="toggle" role="group" aria-label="language">
+      <button id="btn-th" class="active" onclick="setLang('th')">ภาษาไทย</button>
+      <button id="btn-en" onclick="setLang('en')">English</button>
+    </div>
+  </header>
+
+  <!-- ===================== THAI ===================== -->
+  <article id="lang-th">
+    <p>AiKlao (“แอป”, “เรา”) เป็นแอปพลิเคชันสำหรับติดตามตำแหน่งของสมาชิกในทริปแบบเรียลไทม์ผ่าน LINE นโยบายนี้อธิบายว่าเราเก็บข้อมูลอะไร ใช้เพื่ออะไร แบ่งปันกับใคร และคุณมีสิทธิอะไรบ้าง โดยสอดคล้องกับ <strong>พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 (PDPA)</strong></p>
+
+    <h2>1. ข้อมูลที่เราเก็บรวบรวม</h2>
+    <ul>
+      <li><strong>ข้อมูลบัญชี LINE</strong> — เมื่อเข้าสู่ระบบด้วย LINE Login เราได้รับ LINE User ID, ชื่อที่แสดง และรูปโปรไฟล์ เพื่อระบุตัวตนของคุณในทริป</li>
+      <li><strong>ข้อมูลตำแหน่ง (GPS)</strong> — พิกัด, ความแม่นยำ และเวลา เก็บขณะอยู่ในทริปที่กำลังใช้งาน รวมถึง<strong>ขณะแอปทำงานเบื้องหลัง</strong> ผ่าน foreground service เพื่อให้สมาชิกเห็นตำแหน่งของกันและกัน</li>
+      <li><strong>ข้อมูลทริปและสมาชิก</strong> — ทริปที่สร้าง/เข้าร่วม, บทบาท (หัวหน้าทริป), เวลาเข้าร่วม, จุดหมาย และสถานะการมาถึง</li>
+      <li><strong>เหตุการณ์ฉุกเฉิน (SOS)</strong> — เมื่อกดขอความช่วยเหลือ เราเก็บตำแหน่งและเวลาเพื่อแจ้งเตือนสมาชิกคนอื่น</li>
+      <li><strong>ข้อมูลทางเทคนิคขั้นต่ำ</strong> — โทเคนยืนยันตัวตน (JWT) ที่เก็บบนเครื่องอย่างปลอดภัย และข้อมูลที่จำเป็นต่อการทำงาน</li>
+    </ul>
+    <blockquote>เรา<strong>ไม่เก็บ</strong>ข้อมูลการชำระเงิน และ<strong>ไม่ใช้</strong> SDK โฆษณา <span class="note">(หากภายหลังเพิ่ม analytics/crash reporting ต้องปรับนโยบายข้อนี้)</span></blockquote>
+
+    <h2>2. เราใช้ข้อมูลเพื่ออะไร</h2>
+    <ul>
+      <li>แสดงตำแหน่งสมาชิกแบบเรียลไทม์ คำนวณระยะทาง/เวลาถึงโดยประมาณ (ETA) และตรวจจับการมาถึง</li>
+      <li>แจ้งเตือนความปลอดภัย (สมาชิกขาดการติดต่อ, การขอความช่วยเหลือ SOS)</li>
+      <li>จัดการทริป สมาชิก และลิงก์คำเชิญ</li>
+      <li>ส่งการแจ้งเตือนที่เกี่ยวข้องผ่าน LINE</li>
+    </ul>
+    <p>เราประมวลผลข้อมูลตำแหน่ง <strong>บนฐานความยินยอม</strong> ของคุณ ซึ่งถอนได้ตลอดเวลาโดยปิดการแชร์ตำแหน่ง/ออกจากทริป</p>
+
+    <h2>3. ข้อมูลตำแหน่งและการทำงานเบื้องหลัง</h2>
+    <p>แอปเก็บตำแหน่ง<strong>แม้ขณะปิดหน้าจอหรือไม่ได้เปิดแอป</strong> เฉพาะเมื่ออยู่ในทริปที่กำลังใช้งาน เพื่อให้การติดตามต่อเนื่อง โดยมีการแจ้งเตือน (foreground service) ขณะติดตาม คุณหยุดได้ทุกเมื่อด้วยการจบ/ออกจากทริป หรือปิดสิทธิ์ตำแหน่งในตั้งค่าเครื่อง</p>
+
+    <h2>4. การเปิดเผยและแบ่งปันข้อมูล</h2>
+    <ul>
+      <li><strong>กับสมาชิกในทริปเดียวกัน</strong> — ตำแหน่ง ชื่อ รูปโปรไฟล์ สถานะการมาถึง และ SOS ของคุณจะแสดงให้สมาชิกคนอื่นเห็น <span class="note">(ฟังก์ชันหลักของแอป)</span></li>
+      <li><strong>ผู้ให้บริการภายนอก</strong> (ดูข้อ 5)</li>
+      <li>เรา<strong>ไม่ขาย</strong>ข้อมูลส่วนบุคคล และไม่แบ่งปันเพื่อการโฆษณา</li>
+      <li>เราอาจเปิดเผยข้อมูลหากกฎหมายกำหนด</li>
+    </ul>
+
+    <h2>5. บริการของบุคคลที่สาม</h2>
+    <ul>
+      <li><strong>LINE (LINE Corporation)</strong> — เข้าสู่ระบบ (LINE Login) และส่งการแจ้งเตือน (Messaging API) อยู่ภายใต้นโยบายของ LINE</li>
+      <li><strong>OpenStreetMap / Nominatim</strong> — เมื่อค้นหา/แปลงพิกัดเป็นชื่อสถานที่ พิกัดหรือคำค้นจะถูกส่งไปยังบริการของ OpenStreetMap; แผนที่โหลดจาก OpenStreetMap (IP ของคุณอาจถูกเปิดเผยต่อผู้ให้บริการแผนที่)</li>
+      <li><strong>ผู้ให้บริการเซิร์ฟเวอร์ (hosting)</strong> — ข้อมูลจัดเก็บบนเซิร์ฟเวอร์ของเราที่ <strong>Visper Host (ประเทศไทย)</strong> ซึ่งตั้งอยู่ในศูนย์ข้อมูล (data center) ในประเทศไทย</li>
+    </ul>
+
+    <h2>6. การจัดเก็บและระยะเวลา</h2>
+    <ul>
+      <li>เรา<strong>ไม่</strong>ลบข้อมูลทริปย้อนหลังของคุณโดยอัตโนมัติตามกำหนดเวลา ทริป สมาชิก ข้อมูลตำแหน่ง และเหตุการณ์ SOS จะถูกเก็บไว้ตราบเท่าที่ทริปและบัญชีของคุณยังอยู่</li>
+      <li>ทริปที่จบแล้วจะถูก<strong>เก็บถาวร</strong> (archive — ซ่อนจากรายการที่ใช้งาน) ไม่ได้ถูกลบ; หัวหน้าทริปสามารถ<strong>รีเซ็ต</strong>ทริปได้ ซึ่งจะลบประวัติตำแหน่งของทริปนั้นอย่างถาวร</li>
+      <li>ข้อมูลเดียวที่มีอายุการเก็บอัตโนมัติคือ<strong>เซสชันการเข้าสู่ระบบผ่านเว็บ (LIFF)</strong> ซึ่งจะหมดอายุและถูกลบโดยอัตโนมัติประมาณ <strong>4 ชั่วโมง</strong> หลังเข้าสู่ระบบ</li>
+      <li>คุณสามารถขอให้ลบบัญชีและข้อมูลส่วนบุคคลของคุณได้ตลอดเวลา (ดูข้อ 8) โดยเราดำเนินการตามคำขอด้วยตนเองผ่านอีเมลติดต่อ</li>
+    </ul>
+
+    <h2>7. ความปลอดภัย</h2>
+    <p>ข้อมูลถูกส่งผ่านการเชื่อมต่อที่เข้ารหัส (HTTPS) การยืนยันตัวตนใช้ LINE OAuth 2.0 และโทเคน JWT เราใช้มาตรการตามสมควร อย่างไรก็ตาม ไม่มีระบบใดปลอดภัย 100%</p>
+
+    <h2>8. สิทธิของคุณภายใต้ PDPA</h2>
+    <p>คุณมีสิทธิ: เข้าถึง/ขอสำเนา, แก้ไขให้ถูกต้อง, <strong>ลบ</strong>, ระงับการใช้, คัดค้านการประมวลผล, ขอโอนย้ายข้อมูล และ<strong>ถอนความยินยอม</strong>ได้ตลอดเวลา ติดต่อใช้สิทธิที่ <a href="mailto:fontong.jod.aekkarut@gmail.com">fontong.jod.aekkarut@gmail.com</a> หากไม่ได้รับการแก้ไข คุณมีสิทธิร้องเรียนต่อสำนักงานคณะกรรมการคุ้มครองข้อมูลส่วนบุคคล (PDPC)</p>
+
+    <h2>9. เด็กและเยาวชน</h2>
+    <p>แอปนี้ไม่ได้มุ่งเป้าไปที่เด็กอายุต่ำกว่า 13 ปี ผู้เยาว์ควรได้รับความยินยอมจากผู้ปกครองตามที่ PDPA กำหนด</p>
+
+    <h2>10. การเปลี่ยนแปลงนโยบาย</h2>
+    <p>เราอาจปรับปรุงนโยบายนี้ และจะระบุวันที่ปรับปรุงล่าสุดไว้ด้านบน การใช้แอปต่อหลังการเปลี่ยนแปลงถือว่าคุณรับทราบนโยบายฉบับใหม่</p>
+
+    <h2>11. ติดต่อเรา</h2>
+    <p><strong>ผู้ดูแลข้อมูล:</strong> AiKlao — Aekkarat Fontong และ Peerapol Thichaiwong<br>
+    <strong>อีเมล:</strong> <a href="mailto:fontong.jod.aekkarut@gmail.com">fontong.jod.aekkarut@gmail.com</a></p>
+  </article>
+
+  <!-- ===================== ENGLISH ===================== -->
+  <article id="lang-en" hidden>
+    <p>AiKlao (“the app”, “we”, “us”) is an application for real-time group trip tracking via LINE. This policy explains what data we collect, why, who we share it with, and your rights. It aligns with Thailand's <strong>Personal Data Protection Act B.E. 2562 (PDPA)</strong>.</p>
+
+    <h2>1. Information We Collect</h2>
+    <ul>
+      <li><strong>LINE account info</strong> — on sign-in with LINE Login we receive your LINE User ID, display name, and profile picture, used to identify you within a trip.</li>
+      <li><strong>Location data (GPS)</strong> — latitude/longitude, accuracy, and timestamp, collected while you are in an active trip, <strong>including while the app runs in the background</strong> via a foreground service, so members can see each other's location.</li>
+      <li><strong>Trip &amp; membership data</strong> — trips you create/join, your role (trip leader), join time, destination, and arrival status.</li>
+      <li><strong>Emergency (SOS) events</strong> — when you trigger SOS, we record location and time to alert other members.</li>
+      <li><strong>Minimal technical data</strong> — an authentication token (JWT) stored securely on your device, and data required for the service to function.</li>
+    </ul>
+    <blockquote>We do <strong>not</strong> collect payment information and do <strong>not</strong> use advertising SDKs. <span class="note">(If analytics/crash-reporting is added later, this section must be updated.)</span></blockquote>
+
+    <h2>2. How We Use Your Information</h2>
+    <ul>
+      <li>Show members' live location, compute distance / estimated time of arrival (ETA), and detect arrival</li>
+      <li>Provide safety alerts (a member losing signal, SOS requests)</li>
+      <li>Manage trips, members, and invite links</li>
+      <li>Send relevant notifications via LINE</li>
+    </ul>
+    <p>We process your location data <strong>on the basis of your consent</strong>, which you can withdraw anytime by turning off location sharing or leaving the trip.</p>
+
+    <h2>3. Location Data &amp; Background Use</h2>
+    <p>The app collects your location <strong>even when the screen is off or the app is not open</strong>, but only while you are in an active trip, to provide continuous tracking. A notification is shown while tracking is active. You can stop it anytime by ending/leaving the trip or disabling location permission in device settings.</p>
+
+    <h2>4. Disclosure &amp; Sharing</h2>
+    <ul>
+      <li><strong>With members of the same trip</strong> — your location, name, profile picture, arrival status, and SOS alerts are visible to other members <span class="note">(the app's core function)</span>.</li>
+      <li><strong>Third-party service providers</strong> (see Section 5)</li>
+      <li>We do <strong>not sell</strong> your personal data and do not share it for advertising.</li>
+      <li>We may disclose data where required by law.</li>
+    </ul>
+
+    <h2>5. Third-Party Services</h2>
+    <ul>
+      <li><strong>LINE (LINE Corporation)</strong> — sign-in (LINE Login) and notifications (Messaging API), subject to LINE's privacy policy.</li>
+      <li><strong>OpenStreetMap / Nominatim</strong> — when searching or reverse-geocoding a place, coordinates/queries are sent to the OpenStreetMap Foundation's service; map tiles load from OpenStreetMap (your IP may be exposed to the map provider).</li>
+      <li><strong>Hosting provider</strong> — data is stored on our servers hosted with <strong>Visper Host (Thailand)</strong>, in a data center located in Thailand.</li>
+    </ul>
+
+    <h2>6. Data Retention</h2>
+    <ul>
+      <li>We do <strong>not</strong> delete your historical trip data automatically on a timer. Your trips, members, location data, and SOS events are retained for as long as the trip and your account exist.</li>
+      <li>Completed trips are <strong>archived</strong> (hidden from the active list) rather than deleted; a trip leader can <strong>reset</strong> a trip, which permanently deletes that trip's location history.</li>
+      <li>The only data with an automatic lifetime is your <strong>LINE web-login (LIFF) session</strong>, which expires and is deleted automatically about <strong>4 hours</strong> after sign-in.</li>
+      <li>You can request deletion of your account and personal data at any time (see Section 8); we handle such requests manually via the contact email.</li>
+    </ul>
+
+    <h2>7. Security</h2>
+    <p>Data is transmitted over encrypted connections (HTTPS). Authentication uses LINE OAuth 2.0 and JWT tokens. We apply reasonable measures; however, no system is 100% secure.</p>
+
+    <h2>8. Your Rights under PDPA</h2>
+    <p>You have the right to access/obtain a copy, rectify, <strong>erase</strong>, restrict, object to processing, request data portability, and <strong>withdraw consent</strong> anytime. To exercise these rights, contact <a href="mailto:fontong.jod.aekkarut@gmail.com">fontong.jod.aekkarut@gmail.com</a>. If unresolved, you may lodge a complaint with Thailand's Personal Data Protection Committee (PDPC).</p>
+
+    <h2>9. Children</h2>
+    <p>This app is not directed to children under 13. Minors should obtain guardian consent as required by the PDPA.</p>
+
+    <h2>10. Changes to This Policy</h2>
+    <p>We may update this policy and will indicate the “Last updated” date above. Continued use after changes means you accept the updated policy.</p>
+
+    <h2>11. Contact Us</h2>
+    <p><strong>Data controller:</strong> AiKlao — Aekkarat Fontong and Peerapol Thichaiwong<br>
+    <strong>Email:</strong> <a href="mailto:fontong.jod.aekkarut@gmail.com">fontong.jod.aekkarut@gmail.com</a></p>
+  </article>
+
+  <footer>© 2026 AiKlao · Privacy Policy</footer>
+</div>
+
+<script>
+  function setLang(l){
+    document.getElementById('lang-th').hidden = (l!=='th');
+    document.getElementById('lang-en').hidden = (l!=='en');
+    document.getElementById('btn-th').classList.toggle('active', l==='th');
+    document.getElementById('btn-en').classList.toggle('active', l==='en');
+    document.documentElement.lang = l;
+  }
+  // default: show Thai, hide English (no-JS users see both)
+  setLang('th');
+</script>
+</body>
+</html>
