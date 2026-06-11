@@ -106,6 +106,7 @@ export const en = {
     manage: 'Manage',
     privacy: 'Privacy',
     helpFaq: 'Help & FAQ',
+    privacyPolicy: 'Privacy Policy',
     signOut: 'Sign out',
     powerSave: {
       label: 'Power-saving mode',

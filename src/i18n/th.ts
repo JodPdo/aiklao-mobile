@@ -103,6 +103,7 @@ export const th: Resources = {
     manage: 'จัดการ',
     privacy: 'ความเป็นส่วนตัว',
     helpFaq: 'ช่วยเหลือ & FAQ',
+    privacyPolicy: 'นโยบายความเป็นส่วนตัว',
     signOut: 'ออกจากระบบ',
     powerSave: {
       label: 'โหมดประหยัดพลังงาน',

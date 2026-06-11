@@ -133,6 +133,15 @@ npx eas-cli build --profile production --platform all
 
 ---
 
+## 🔒 Privacy Policy
+
+Bilingual (TH/EN), aligned with Thailand's PDPA:
+<https://jodpdo.github.io/aiklao-mobile/privacy-policy.html>
+
+> ⚠️ Provisional URL — live once GitHub Pages is enabled. The in-app link (Settings → Help) reads it from [`src/config/links.ts`](./src/config/links.ts).
+
+---
+
 ## 🚦 Next Phase
 
 **Phase 5.2 — Foreground Location + Map** (สัปดาห์ 3-4)

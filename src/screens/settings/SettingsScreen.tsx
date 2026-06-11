@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import {
   Image,
+  Linking,
   ScrollView,
   StyleSheet,
   Switch,
@@ -12,6 +13,7 @@ import {
 } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { t } from '@/i18n';
+import { PRIVACY_POLICY_URL } from '@/config/links';
 import { useAuth } from '@/auth/AuthContext';
 import { useTheme } from '@/theme/ThemeProvider';
 import { usePowerSaveMode } from '@/hooks/usePowerSaveMode';
@@ -235,6 +237,13 @@ export function SettingsScreen() {
             showChevron
             colors={colors}
             onPress={() => {}}
+          />
+          <SettingsRow
+            icon="🔒"
+            label={t('settings.privacyPolicy')}
+            showChevron
+            colors={colors}
+            onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
           />
           <SettingsRow
             icon="↪"
