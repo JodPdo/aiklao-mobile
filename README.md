@@ -1,142 +1,154 @@
 # AiKlao Mobile
 
-React Native + Expo mobile app for AiKlao trip tracking.
+**Real-time group trip-tracking app — React Native (Expo) + TypeScript.**
 
-**Status:** Phase 5.1 — Authentication ✅
+AiKlao lets a group of friends share their live location during a trip: see who's where on a map, distance and ETA to the destination, break status, and an emergency **SOS** alert. This repository is the **mobile app**; it talks to a separate Node.js / Express + PostgreSQL backend.
+
+**Version:** 0.4.9 · **Language:** TypeScript · **Platform:** Android (Expo / EAS) — iOS runnable via Expo
+
+➡️ **Try it now (Android APK):** https://github.com/JodPdo/aiklao-mobile/releases/latest
 
 ---
 
-## 🚀 Quick Start
+## Features (v0.4.9)
 
-```bash
-# Install deps
-npm install
+- **LINE Login** — OAuth 2.0 + PKCE via `expo-auth-session` + `expo-crypto`; backend issues a JWT, stored with `expo-secure-store`, attached to every API call by an axios interceptor.
+- **Background GPS tracking** — `expo-location` + `expo-task-manager` running as an Android **foreground service**. The app is the single writer of location data ("Pattern A").
+- **Adaptive updates & battery saving** — adaptive 10s / 30s update intervals, with automatic power-save below 20% battery (`expo-battery`).
+- **Live map** — interactive map rendered with Leaflet inside a `react-native-webview`, with live "pulse" markers for each member.
+- **Trips & members** — create / join a trip, view members, and an active-trip card with live status.
+- **Invites** — share a trip via deep links (`expo-linking`) and clipboard, with in-app invite handling.
+- **Emergency SOS** — one-tap SOS button that raises an alert to the group.
+- **Notifications** — trip / alert notifications (`POST_NOTIFICATIONS`).
+- **Internationalization** — Thai / English, following the device locale (`i18n-js` + `expo-localization`).
+- **Dark mode** — theme switching that respects the system appearance.
+- **Permission flows** — guided foreground and background location permission gates.
 
-# Start Expo dev server
-npm start
+---
 
-# จากนั้น:
-# - กด 'a' เพื่อเปิดบน Android emulator
-# - กด 'i' เพื่อเปิดบน iOS simulator
-# - แสกน QR code ด้วย Expo Go app (มือถือจริง)
+## Tech stack
+
+| Area | Tools |
+|---|---|
+| Core | React Native, Expo, TypeScript |
+| Navigation | React Navigation (native-stack + bottom-tabs) |
+| Auth | `expo-auth-session`, `expo-crypto` (OAuth 2.0 + PKCE), `expo-secure-store` |
+| Networking | `axios` (with a JWT request interceptor) |
+| Location | `expo-location`, `expo-task-manager`, `expo-battery` |
+| Map | `react-native-webview` + Leaflet, `react-native-maps` |
+| i18n | `i18n-js`, `expo-localization` |
+| Build / release | EAS Build → GitHub Releases (APK) |
+
+---
+
+## Architecture — "Pattern A" (single writer)
+
+The mobile app is the **single writer** of location data. A background task captures GPS and `POST`s it to the backend REST API; all clients (this app and the LIFF web view) **read** derived state — distance, ETA, break status, SOS — that the backend computes. Authentication is a backend-issued JWT (after LINE Login), attached to requests by an axios interceptor.
+
+```
+        LINE Login (OAuth 2.0 + PKCE)
+                  │  id_token → exchange
+                  ▼
+   ┌─────────────────────────────┐        POST location (background task)
+   │   AiKlao Mobile (Expo/RN)    │ ───────────────────────────────────────┐
+   │   • JWT in SecureStore       │                                         ▼
+   │   • foreground-service GPS   │        GET trip state (ETA / SOS / break)
+   │   • Leaflet map (WebView)    │ ◀───────────────────────────────────────┐
+   └─────────────────────────────┘                                         │
+                  ▲                                                         │
+                  │                              ┌──────────────────────────┴───┐
+                  └──────────────────────────────│  Backend: Node/Express + PG  │
+                                                 │  (separate service)          │
+                                                 └──────────────────────────────┘
 ```
 
+> The backend (REST API, SOS de-duplication, ETA, scheduler) lives in a separate repository and is not included here.
+
 ---
 
-## 📁 Project Structure
+## Project structure
 
 ```
 aiklao-mobile/
-├── App.tsx                       # Entry point
-├── app.json                      # Expo config
-├── eas.json                      # EAS Build config
-├── package.json
-├── tsconfig.json
-├── babel.config.js
-│
+├── App.tsx                      # Entry point
+├── app.json                     # Expo config (extra: apiBaseUrl, lineChannelId, eas)
+├── eas.json                     # EAS Build profiles
 ├── src/
 │   ├── api/
-│   │   └── client.ts             # axios + JWT interceptor
+│   │   └── client.ts            # axios instance + JWT interceptor
 │   ├── auth/
-│   │   ├── AuthContext.tsx       # React Context for auth state
-│   │   ├── lineLogin.ts          # LINE OAuth 2.0 flow
-│   │   └── tokenStorage.ts       # SecureStore wrapper
+│   │   ├── AuthContext.tsx      # auth state (React Context)
+│   │   ├── lineLogin.ts         # LINE OAuth 2.0 + PKCE flow
+│   │   └── tokenStorage.ts      # SecureStore wrapper
 │   ├── components/
-│   │   ├── Button.tsx
-│   │   └── Screen.tsx
-│   ├── navigation/
-│   │   ├── RootNavigator.tsx     # Auth gate
-│   │   ├── AuthNavigator.tsx     # Login stack
-│   │   └── AppNavigator.tsx      # Tabs (Home/Trips/Settings)
-│   ├── screens/
-│   │   ├── auth/LoginScreen.tsx
-│   │   ├── home/HomeScreen.tsx
-│   │   ├── trips/TripsScreen.tsx
-│   │   └── settings/SettingsScreen.tsx
-│   └── theme/
-│       ├── colors.ts
-│       ├── typography.ts
-│       ├── spacing.ts
-│       └── index.ts
-│
-├── backend-changes/              # Code ที่ต้องเพิ่มใน aiklao-bot-be
-│   ├── migrations/009_users_mobile.sql
-│   ├── routes/mobileAuth.js
-│   ├── middleware/jwtAuth.js
-│   └── BACKEND_CHANGES.md
-│
-└── docs/
-    ├── PHASE_5.0.md              # Setup + UI shell
-    └── PHASE_5.1.md              # LINE Login auth
+│   │   ├── ActiveTripCard.tsx
+│   │   ├── InviteMembersModal.tsx
+│   │   ├── LeafletMapView.tsx   # Leaflet map in a WebView
+│   │   ├── LivePulseDot.tsx
+│   │   ├── SosButton.tsx
+│   │   └── …
+│   ├── hooks/                   # useDarkMode, useInviteDeepLink, usePowerSaveMode
+│   ├── i18n/                    # en.ts, th.ts, index.ts
+│   ├── navigation/              # Root / Auth / App navigators (auth gate + tabs)
+│   ├── permissions/             # foreground + background location gates
+│   ├── screens/                 # auth, home, map, trip, trips, settings
+│   ├── services/                # locationTask.ts, inviteDeepLink.ts, notify.ts
+│   └── theme/                   # ThemeProvider, colors, spacing, typography
+└── …
 ```
 
 ---
 
-## 🔧 Setup Checklist
+## Getting started
 
-### 1. Backend (aiklao-bot-be)
-- [ ] Run migration `009_users_mobile.sql`
-- [ ] Copy `routes/mobileAuth.js` + `middleware/jwtAuth.js`
-- [ ] Set env: `LINE_LOGIN_CHANNEL_ID`, `MOBILE_JWT_SECRET`
-- [ ] Wire route ใน `server.js`: `app.use("/api/mobile/auth", mobileAuth);`
-- [ ] Deploy (`task patch-release` → `task push-release`)
+### Prerequisites
+- Node.js + npm
+- Expo tooling (`npx expo`)
+- A running AiKlao backend (for auth + trip data)
+- A **LINE Login** channel (OpenID Connect enabled)
 
-### 2. LINE Developers Console
-- [ ] Create **LINE Login channel** (คนละตัวกับ Messaging API)
-- [ ] Enable OpenID Connect
-- [ ] Add Callback URLs: `aiklao://auth/callback` + dev URL
-- [ ] Copy Channel ID
+### Run locally
+```bash
+npm install
+npm start          # then press 'a' (Android) / 'i' (iOS), or scan the QR with Expo Go / a dev client
+```
 
-### 3. Mobile app
-- [ ] `npm install`
-- [ ] Edit `app.json` → set `extra.lineChannelId`
-- [ ] Edit `app.json` → set `extra.apiBaseUrl` (ถ้าไม่ใช่ production)
-- [ ] `npm start`
+### Configuration (`app.json` → `expo.extra`)
+| Key | Description |
+|---|---|
+| `apiBaseUrl` | Base URL of the AiKlao backend |
+| `lineChannelId` | LINE Login channel ID |
+| `eas.projectId` | EAS project ID (for builds) |
 
-### 4. EAS (สำหรับ build production)
-- [ ] `npx eas-cli login`
-- [ ] `npx eas-cli init` → จะ generate projectId อัตโนมัติ
-- [ ] Update `app.json` → `extra.eas.projectId`
+Android permissions requested: `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`, `ACCESS_BACKGROUND_LOCATION`, `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_LOCATION`, `POST_NOTIFICATIONS`.
 
 ---
 
-## 📱 Test Flow (Phase 5.1)
-
-1. เปิดแอป → เห็นหน้า Login
-2. กด "เข้าสู่ระบบด้วย LINE" → เปิด browser ไป LINE
-3. Login ด้วย LINE account
-4. Browser redirect กลับ app → exchange code → backend JWT → store
-5. เห็นหน้า Home + ชื่อ user
-6. ไปแท็บ Settings → กด "ออกจากระบบ" → กลับหน้า Login
-7. ปิด-เปิดแอป → ถ้ายัง login → เข้า Home ทันที (auto-login)
-
----
-
-## 🛠️ Build for Distribution
+## Scripts
 
 ```bash
-# Preview build (internal testing, install ผ่าน QR)
-npx eas-cli build --profile preview --platform android
-npx eas-cli build --profile preview --platform ios
-
-# Production build (ส่ง store)
-npx eas-cli build --profile production --platform all
+npm start        # Expo dev server
+npm run android  # open on Android
+npm run ios      # open on iOS
+npm run typecheck# tsc --noEmit
+npm run lint     # eslint
 ```
 
 ---
 
-## 📚 Docs
+## Build & release
 
-- [Phase 5.0 — Setup + UI Shell](./docs/PHASE_5.0.md)
-- [Phase 5.1 — LINE Login Authentication](./docs/PHASE_5.1.md)
-- [Backend Changes](./backend-changes/BACKEND_CHANGES.md)
+Built with **EAS Build** and published to **GitHub Releases** as a downloadable APK.
+
+```bash
+npx eas-cli build --profile preview --platform android     # internal testing
+npx eas-cli build --profile production --platform android   # release build
+```
+
+Latest release: https://github.com/JodPdo/aiklao-mobile/releases/latest
 
 ---
 
-## 🚦 Next Phase
+## Status
 
-**Phase 5.2 — Foreground Location + Map** (สัปดาห์ 3-4)
-- expo-location integration
-- Map view (react-native-maps)
-- Start/Stop trip button
-- Wire กับ backend trips endpoint
+In real-world testing with an early group of users on real trips. Actively developed.
