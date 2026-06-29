@@ -127,12 +127,32 @@ Android permissions requested: `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`,
 ## Scripts
 
 ```bash
-npm start        # Expo dev server
-npm run android  # open on Android
-npm run ios      # open on iOS
-npm run typecheck# tsc --noEmit
-npm run lint     # eslint
+npm start         # Expo dev server
+npm run android   # open on Android
+npm run ios       # open on iOS
+npm run typecheck # tsc --noEmit
+npm run lint      # eslint
+npm test          # run the Jest unit-test suite
+npm run test:cov  # run the suite with a coverage report
 ```
+
+---
+
+## Testing
+
+Unit-tested with **Jest** (`jest-expo`) — **82 tests across 7 suites** focused on the pure,
+risk-prone logic of the app. Run `npm test` (or `npm run test:cov` for coverage).
+
+| Area | What it covers |
+|------|----------------|
+| **Auth / tokens** | `tokenStorage` round-trips (JWT, refresh, user), invalid-JSON handling, and `clear()` on logout |
+| **SOS (safety-critical)** | `useSos` state reconciliation with server truth, the `userId`/`user.id` string-coercion match, marker building, and the **no-GPS-fix guard** (never fires an SOS without coordinates) |
+| **Trip helpers** | battery-colour & offline thresholds, relative-time buckets, and deterministic avatar colours |
+| **Invite deep-links** | `parseInviteToken` for custom-scheme / universal / query URLs, plus the pending-token queue (incl. storage-error fallbacks) |
+
+Tests are kept **deterministic** (injected clock, in-memory storage mocks). A **GitHub Actions
+CI gate** (`ci.yml`) runs `typecheck` + the Jest suite on every push and pull request, and the
+Android release workflow depends on it — a red suite blocks the build.
 
 ---
 
