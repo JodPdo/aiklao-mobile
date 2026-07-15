@@ -26,6 +26,7 @@ web-build/
 *.tsbuildinfo
 android/
 ios/
+coverage/
 
 # Tech debt cleanup 2026-06-01
 .expo/devices.json
