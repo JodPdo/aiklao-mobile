@@ -1,5 +1,5 @@
 // src/navigation/AppNavigator.tsx
-// Bottom tab navigator. Home tab is wrapped in a NativeStack so MapScreen
+// Bottom tab navigator. Home tab is wrapped in a NativeStack so TripDetail
 // can be pushed full-screen without affecting the Trips or Settings tabs.
 
 import React from 'react';
@@ -9,7 +9,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { HomeScreen } from '@/screens/home/HomeScreen';
 import { CreateTripScreen } from '@/screens/trip/CreateTripScreen';
 import { DestinationPickerScreen } from '@/screens/trip/DestinationPickerScreen';
-import { MapScreen } from '@/screens/map/MapScreen';
 import { TripDetailScreen } from '@/screens/trip/TripDetailScreen';
 import { TripsScreen } from '@/screens/trips/TripsScreen';
 import { SettingsScreen } from '@/screens/settings/SettingsScreen';
@@ -40,11 +39,6 @@ function HomeStackNavigator() {
           title: t('destinationPicker.headerTitle'),
           headerBackTitle: t('common.back'),
         }}
-      />
-      <HomeStack.Screen
-        name="MapScreen"
-        component={MapScreen}
-        options={{ gestureEnabled: false }}
       />
       <HomeStack.Screen
         name="TripDetail"

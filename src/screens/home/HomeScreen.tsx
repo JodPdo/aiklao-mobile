@@ -33,7 +33,7 @@ export function HomeScreen() {
   const styles = makeStyles(colors);
 
   // Refetch active trips every time the screen comes into focus (handles
-  // back-from-MapScreen, Stop Trip → Home, etc.).
+  // back-from-TripDetail, Stop Trip → Home, etc.).
   useFocusEffect(
     useCallback(() => {
       let mounted = true;
@@ -103,7 +103,7 @@ export function HomeScreen() {
 
       {hasActive ? (
         <>
-          {/* One card per active trip — each opens its own MapScreen (Phase 6.2.5) */}
+          {/* One card per active trip — each opens its own TripDetail (Phase 6.2.5) */}
           {activeTrips.map((trip) => (
             <ActiveTripCard
               key={trip.id}

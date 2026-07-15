@@ -88,8 +88,8 @@ function PowerSaveRow({ active, onToggle, colors, isDark }: PowerSaveRowProps) {
             {t('settings.powerSave.label')}
           </Text>
           {active && (
-            <View style={staticStyles.powerBadge}>
-              <Text style={staticStyles.powerBadgeText}>{t('settings.on')}</Text>
+            <View style={[staticStyles.powerBadge, { backgroundColor: colors.warning }]}>
+              <Text style={[staticStyles.powerBadgeText, { color: colors.white }]}>{t('settings.on')}</Text>
             </View>
           )}
         </View>
@@ -100,8 +100,8 @@ function PowerSaveRow({ active, onToggle, colors, isDark }: PowerSaveRowProps) {
       <Switch
         value={active}
         onValueChange={onToggle}
-        trackColor={{ false: '#D1D5DB', true: colors.warning }}
-        thumbColor="#fff"
+        trackColor={{ false: colors.border, true: colors.warning }}
+        thumbColor={colors.white}
       />
     </View>
   );
@@ -171,25 +171,19 @@ export function SettingsScreen() {
             icon="👤"
             label={t('settings.profile')}
             value={user?.displayName ?? '—'}
-            showChevron
             colors={colors}
-            onPress={() => {}}
           />
           <SettingsRow
             icon="📱"
             label={t('settings.connectedDevices')}
             value={t('settings.deviceCount', { count: 1 })}
-            showChevron
             colors={colors}
-            onPress={() => {}}
           />
           <SettingsRow
             icon="🔔"
             label={t('settings.notifications')}
             value={t('settings.on')}
-            showChevron
             colors={colors}
-            onPress={() => {}}
           />
         </View>
 
@@ -210,8 +204,8 @@ export function SettingsScreen() {
               <Switch
                 value={darkOn}
                 onValueChange={handleDarkToggle}
-                trackColor={{ false: '#D1D5DB', true: colors.primary }}
-                thumbColor="#fff"
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor={colors.white}
               />
             }
             colors={colors}
@@ -220,9 +214,7 @@ export function SettingsScreen() {
             icon="🛡️"
             label={t('settings.privacy')}
             value={t('settings.manage')}
-            showChevron
             colors={colors}
-            onPress={() => {}}
           />
         </View>
 
@@ -232,9 +224,7 @@ export function SettingsScreen() {
           <SettingsRow
             icon="❓"
             label={t('settings.helpFaq')}
-            showChevron
             colors={colors}
-            onPress={() => {}}
           />
           <SettingsRow
             icon="↪"
@@ -304,14 +294,14 @@ const staticStyles = StyleSheet.create({
     gap: spacing.sm,
     flexWrap: 'wrap',
   },
+  // Color applied inline where used (needs colors.warning/colors.white — this block is
+  // theme-independent layout only, see file header comment).
   powerBadge: {
-    backgroundColor: '#E89B23',
     borderRadius: 8,
     paddingHorizontal: 7,
     paddingVertical: 1,
   },
   powerBadgeText: {
-    color: '#fff',
     fontSize: 10,
     fontWeight: '500',
   },
@@ -366,7 +356,7 @@ function makeStyles(c: Palette) {
       borderRadius: 26,    // circular LINE profile picture
     },
     avatarLetter: {
-      color: '#fff',
+      color: c.white,
       fontSize: 19,
       fontWeight: '500',
     },

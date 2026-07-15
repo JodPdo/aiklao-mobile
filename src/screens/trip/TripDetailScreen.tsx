@@ -24,8 +24,10 @@ import { useAuth } from '@/auth/AuthContext';
 import { t } from '@/i18n';
 import { api } from '@/api/client';
 import {
+  startBackgroundTracking,
   stopBackgroundTracking,
   getActiveTripId,
+  isTrackingActive,
 } from '@/services/locationTask';
 import { usePowerSaveMode } from '@/hooks/usePowerSaveMode';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -37,6 +39,7 @@ import { TripMapView } from './components/TripMapView';
 import { TripStatsCard } from './components/TripStatsCard';
 import { MembersSheet } from './components/MembersSheet';
 import { TripActionBar } from './components/TripActionBar';
+import { TripMoreActionsSheet } from './components/TripMoreActionsSheet';
 import { TripData } from './tripShared';
 import { useSos, SosCoords } from './useSos';
 
@@ -64,6 +67,8 @@ export function TripDetailScreen() {
   const [activeTripId, setActiveTripId] = useState<string | null>(null);
   const [showInvite, setShowInvite] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
+  const [showMore, setShowMore] = useState(false);
+  const [sharingLoading, setSharingLoading] = useState(false);
   // One-shot self-position fallback for SOS coords (mirrors MapScreen) — used when
   // the caller has no lastLocation yet so SOS still works.
   const [selfPosition, setSelfPosition] = useState<{ lat: number; lng: number } | null>(null);
@@ -92,11 +97,25 @@ export function TripDetailScreen() {
     }
   }, [tripId]);
 
+  // B2-3: getActiveTripId() alone only reflects intent — it can go stale if the OS killed
+  // the background task without going through stopBackgroundTracking() (permission revoked,
+  // force-quit, battery kill). Cross-check the real task state and self-heal the stored flag
+  // so the share toggle can't show ON when nothing is actually being sent.
+  const refreshSharingState = useCallback(async () => {
+    const [storedTripId, reallyRunning] = await Promise.all([getActiveTripId(), isTrackingActive()]);
+    if (storedTripId === tripId && !reallyRunning) {
+      await stopBackgroundTracking();
+      setActiveTripId(null);
+    } else {
+      setActiveTripId(storedTripId);
+    }
+  }, [tripId]);
+
   useFocusEffect(
     useCallback(() => {
       load();
-      getActiveTripId().then(setActiveTripId);
-    }, [load]),
+      refreshSharingState();
+    }, [load, refreshSharingState]),
   );
 
   // Hide the bottom tab bar while this screen is focused; restore the navigator's
@@ -115,7 +134,6 @@ export function TripDetailScreen() {
   const isSharing = activeTripId === tripId;
   const isEmpty = !data || data.members.every(m => m.lastLocation === null);
   const callerMember = data?.members.find(m => m.lineUserId === user?.lineUserId);
-  const canStop = !!callerMember?.isLeader && !isArchived;
 
   // Auto-refresh every 60s in default mode; stopped when power-save or archived
   useEffect(() => {
@@ -169,7 +187,7 @@ export function TripDetailScreen() {
   async function onRefresh() {
     setRefreshing(true);
     await load();
-    setActiveTripId(await getActiveTripId());
+    await refreshSharingState();
     setRefreshing(false);
   }
 
@@ -196,6 +214,28 @@ export function TripDetailScreen() {
         },
       ],
     );
+  }
+
+  // Single toggle: press while OFF starts sharing, press while ON stops it. No confirm
+  // dialog either direction — B2-1's mandate is that stopping must be instant/frictionless,
+  // and requiring confirmation to start would just be extra taps for the common case.
+  async function handleToggleSharing() {
+    setSharingLoading(true);
+    try {
+      if (isSharing) {
+        await stopBackgroundTracking();
+      } else {
+        await startBackgroundTracking(tripId);
+      }
+      await refreshSharingState();
+    } catch (err: any) {
+      Alert.alert(
+        isSharing ? t('trip.sharing.stopFailedTitle') : t('trip.sharing.startFailedTitle'),
+        err?.message || t('common.retry'),
+      );
+    } finally {
+      setSharingLoading(false);
+    }
   }
 
   if (error != null) {
@@ -329,12 +369,12 @@ export function TripDetailScreen() {
       {!isArchived && (
         <TripActionBar
           memberCount={data.members.length}
-          canInvite={!!callerMember?.isLeader}
-          canStop={canStop}
+          isSharing={isSharing}
+          sharingLoading={sharingLoading}
+          onToggleSharing={handleToggleSharing}
           bottomInset={Math.max(insets.bottom, spacing.lg)}
           onMembers={() => setShowMembers(true)}
-          onInvite={() => setShowInvite(true)}
-          onEndTrip={handleEndTrip}
+          onMore={callerMember?.isLeader ? () => setShowMore(true) : undefined}
         />
       )}
 
@@ -345,6 +385,14 @@ export function TripDetailScreen() {
         selfLineUserId={user?.lineUserId}
         onInvite={callerMember?.isLeader ? () => { setShowMembers(false); setShowInvite(true); } : undefined}
         onClose={() => setShowMembers(false)}
+      />
+
+      {/* More sheet — leader-only actions relocated out of the primary bar (B1-1) */}
+      <TripMoreActionsSheet
+        visible={showMore}
+        onInvite={() => { setShowMore(false); setShowInvite(true); }}
+        onEndTrip={() => { setShowMore(false); handleEndTrip(); }}
+        onClose={() => setShowMore(false)}
       />
 
       <InviteMembersModal
@@ -372,13 +420,14 @@ function makeStyles(c: Palette) {
       padding: spacing.xl,
     },
 
-    // Active-SOS banner — hardcoded danger red (sanctioned exception), verbatim from MapScreen
+    // Active-SOS banner — B2-5: was a hardcoded #DC2626 (one of 3 copy-pasted spots this
+    // ticket closes); colors.danger also fixes this banner never adapting to dark mode before.
     sosBanner: {
       flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-      backgroundColor: '#DC2626', paddingHorizontal: 16, paddingVertical: 12,
+      backgroundColor: c.danger, paddingHorizontal: 16, paddingVertical: 12,
     },
-    sosBannerText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-    sosBannerCancel: { color: '#fff', fontSize: 14, textDecorationLine: 'underline' },
+    sosBannerText: { color: c.white, fontSize: 15, fontWeight: '700' },
+    sosBannerCancel: { color: c.white, fontSize: 14, textDecorationLine: 'underline' },
 
     // Map region — flex 7 against the ScrollView's flex 1 ⇒ map ≈ 70% of the
     // viewport (the rest is header + action bar + the scrollable content). No

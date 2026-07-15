@@ -9,7 +9,7 @@ import {
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing, typography } from '@/theme';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'live';
 
 interface ButtonProps {
   label: string;
@@ -18,6 +18,7 @@ interface ButtonProps {
   loading?: boolean;
   disabled?: boolean;
   fullWidth?: boolean;
+  icon?: React.ReactNode;   // optional leading element (e.g. a status dot); hidden while loading
   style?: ViewStyle;
 }
 
@@ -28,6 +29,7 @@ export function Button({
   loading = false,
   disabled = false,
   fullWidth = false,
+  icon,
   style,
 }: ButtonProps) {
   const { colors } = useTheme();
@@ -55,6 +57,10 @@ export function Button({
       container: { backgroundColor: colors.danger },
       labelColor: colors.white,
     },
+    live: {
+      container: { backgroundColor: colors.live },
+      labelColor: colors.white,
+    },
   };
 
   const current = variantStyles[variant];
@@ -79,7 +85,12 @@ export function Button({
       {loading ? (
         <ActivityIndicator color={current.labelColor} />
       ) : (
-        <Text style={[styles.label, { color: current.labelColor }]}>{label}</Text>
+        <>
+          {icon}
+          <Text style={[styles.label, { color: current.labelColor }, icon != null && styles.labelWithIcon]}>
+            {label}
+          </Text>
+        </>
       )}
     </Pressable>
   );
@@ -98,5 +109,8 @@ const styles = StyleSheet.create({
   },
   label: {
     ...typography.button,
+  },
+  labelWithIcon: {
+    marginLeft: spacing.xs,
   },
 });

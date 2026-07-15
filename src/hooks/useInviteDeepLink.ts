@@ -13,6 +13,7 @@ import { useAuth } from '@/auth/AuthContext';
 import { acceptInvite } from '@/api/client';
 import { navigationRef, navigateToTrip } from '@/navigation/navigationRef';
 import { notify } from '@/services/notify';
+import { startBackgroundTracking } from '@/services/locationTask';
 import { t } from '@/i18n';
 import {
   parseInviteToken,
@@ -73,10 +74,22 @@ export function useInviteDeepLink() {
         case 'joined':
           await clearPendingToken();
           setPending(null);
+          // B2-1: joining via deep link must start sharing, same as CreateTripScreen does on
+          // trip creation — otherwise every member who joins through an invite link never
+          // broadcasts a location at all. Soft-fail: never block navigation on this.
+          try {
+            await startBackgroundTracking(result.tripId);
+          } catch (bgErr: any) {
+            console.log('[invite-deep-link] bg soft-fail:', bgErr?.message ?? bgErr);
+          }
           notify(t('invite.joined', { name: result.tripName }));
           navigateToTrip(result.tripId);
           break;
         case 'already':
+          // Deliberately NOT calling startBackgroundTracking here — this is a re-entry for
+          // someone who already joined earlier, and may have since turned sharing off via the
+          // toggle. Force-restarting would override that choice. The toggle is always visible
+          // in the action bar if they want to turn it back on.
           await clearPendingToken();
           setPending(null);
           notify(t('invite.welcomeBack'));

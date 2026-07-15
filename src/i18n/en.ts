@@ -140,15 +140,7 @@ export const en = {
     noSelectionTitle: 'Choose a destination first',
     noSelectionBody: 'Tap the map to pick your destination.',
   },
-  map: {
-    tripLabel: 'Trip #%{id}',
-    selfMarker: 'You',
-    tracking: {
-      background: 'Background tracking active',
-      foreground: 'Foreground tracking only',
-    },
-  },
-  // Shared SOS strings — used by MapScreen + TripDetail banners, the useSos hook
+  // Shared SOS strings — used by TripDetail banners, the useSos hook
   // (confirm/cancel/error alerts), and SosButton.
   sos: {
     bannerActive: '🚨 SOS ACTIVE · %{time}',
@@ -197,6 +189,16 @@ export const en = {
       count: plural({ one: '%{count} member', other: '%{count} members' }),
     },
     invite: 'Invite',
+    sharing: {
+      on: 'Sharing',
+      off: 'Share location',
+      startFailedTitle: 'Could not start sharing location',
+      stopFailedTitle: 'Could not stop sharing location',
+    },
+    more: 'More',
+    moreActions: {
+      title: 'More',
+    },
     stats: {
       destination: 'Destination',
       noDestination: 'No destination set',

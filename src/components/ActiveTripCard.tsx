@@ -1,5 +1,5 @@
 // src/components/ActiveTripCard.tsx
-// Phase 6.2.5 — clickable card on HomeScreen that opens MapScreen for an
+// Phase 6.2.5 — clickable card on HomeScreen that opens TripDetail for an
 // in-progress trip. One card per active trip (multi-active supported).
 
 import React from 'react';
@@ -110,7 +110,7 @@ function makeStyles(c: Palette) {
       marginTop: spacing.xs,
     },
     ctaText: {
-      color: '#fff',
+      color: c.white,
       fontSize: 13,
       fontWeight: '600',
     },

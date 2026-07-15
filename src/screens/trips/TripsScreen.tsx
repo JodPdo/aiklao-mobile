@@ -55,6 +55,18 @@ const staticBadgeStyles = StyleSheet.create({
   label: { ...typography.caption, fontWeight: '600' },
 });
 
+// UX-10: this tab had no way to start a trip in ANY state (empty or with trips already
+// listed) — a persistent header CTA covers both instead of only fixing the empty state.
+function ScreenHeader({ onCreate, colors }: { onCreate: () => void; colors: Palette }) {
+  const styles = makeStyles(colors);
+  return (
+    <View style={styles.headerRow}>
+      <Text style={styles.title}>{t('trips.title')}</Text>
+      <Button label={t('home.startNewTrip')} variant="secondary" onPress={onCreate} />
+    </View>
+  );
+}
+
 export function TripsScreen() {
   const navigation = useNavigation();
   const { colors } = useTheme();
@@ -94,6 +106,11 @@ export function TripsScreen() {
     });
   }
 
+  function handleCreateTrip() {
+    // Cross-stack, same pattern as handleTripPress — CreateTrip lives in the Home stack.
+    (navigation as any).navigate('Home', { screen: 'CreateTrip' });
+  }
+
   function renderItem({ item }: { item: TripItem }) {
     return (
       <TouchableOpacity
@@ -127,7 +144,7 @@ export function TripsScreen() {
   if (loading) {
     return (
       <Screen padded background="alt">
-        <Text style={styles.title}>{t('trips.title')}</Text>
+        <ScreenHeader onCreate={handleCreateTrip} colors={colors} />
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -138,7 +155,7 @@ export function TripsScreen() {
   if (error) {
     return (
       <Screen padded background="alt">
-        <Text style={styles.title}>{t('trips.title')}</Text>
+        <ScreenHeader onCreate={handleCreateTrip} colors={colors} />
         <View style={styles.center}>
           <Text style={styles.errorText}>{error}</Text>
           <Button
@@ -183,10 +200,15 @@ export function TripsScreen() {
 
 function makeStyles(c: Palette) {
   return StyleSheet.create({
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: spacing.md,
+    },
     title: {
       ...typography.h2,
       color: c.textPrimary,
-      marginBottom: spacing.md,
     },
     list: { flex: 1 },
     listContent: { paddingBottom: spacing.xl },

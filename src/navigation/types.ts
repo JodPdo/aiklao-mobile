@@ -10,7 +10,6 @@ export type HomeStackParamList = {
   HomeMain: undefined;
   CreateTrip: { selectedDestination?: { name: string; lat: number; lng: number } } | undefined;
   DestinationPicker: undefined;
-  MapScreen: { tripId: string };
   TripDetail: { tripId: string };
 };
 

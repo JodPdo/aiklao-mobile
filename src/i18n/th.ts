@@ -137,14 +137,6 @@ export const th: Resources = {
     noSelectionTitle: 'เลือกจุดหมายก่อน',
     noSelectionBody: 'แตะที่แผนที่เพื่อเลือกจุดหมายปลายทาง',
   },
-  map: {
-    tripLabel: 'ทริป #%{id}',
-    selfMarker: 'คุณ',
-    tracking: {
-      background: 'กำลังติดตามตำแหน่งแบบเบื้องหลัง',
-      foreground: 'ติดตามตำแหน่งเฉพาะตอนเปิดแอป',
-    },
-  },
   sos: {
     bannerActive: '🚨 SOS กำลังทำงาน · %{time}',
     confirmTitle: '🚨 ยืนยันส่งสัญญาณ SOS?',
@@ -192,6 +184,16 @@ export const th: Resources = {
       count: { other: 'สมาชิก %{count}' },
     },
     invite: 'เชิญ',
+    sharing: {
+      on: 'กำลังแชร์',
+      off: 'แชร์ตำแหน่ง',
+      startFailedTitle: 'เริ่มแชร์ตำแหน่งไม่สำเร็จ',
+      stopFailedTitle: 'หยุดแชร์ตำแหน่งไม่สำเร็จ',
+    },
+    more: 'เพิ่มเติม',
+    moreActions: {
+      title: 'เพิ่มเติม',
+    },
     stats: {
       destination: 'จุดหมาย',
       noDestination: 'ยังไม่ตั้งจุดหมาย',

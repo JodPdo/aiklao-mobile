@@ -71,7 +71,7 @@ export function CreateTripScreen() {
         console.log('[create-trip] bg soft-fail:', bgErr?.message ?? bgErr);
       }
 
-      navigation.replace('MapScreen', { tripId });
+      navigation.replace('TripDetail', { tripId });
     } catch (err: any) {
       if (err?.response?.status === 401) return;
       Alert.alert(t('createTrip.createFailed'), err?.response?.data?.error ?? err?.message ?? t('common.retry'));
