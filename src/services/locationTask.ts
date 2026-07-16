@@ -29,6 +29,23 @@ async function isPowerSaveMode(): Promise<boolean> {
   }
 }
 
+// Backoff after an HTTP 429 (rate-limited) response from the location POST endpoint.
+// This is a background task with no React context available (same constraint as
+// POWER_SAVE_KEY/isPowerSaveMode above), so the backoff state is just a plain
+// module-level variable rather than something routed through app state.
+//
+// A "tick" here is one task invocation (one batch of locations Expo delivers on the
+// configured timeInterval/distanceInterval). On a 429 we skip posting for the next
+// few ticks instead of immediately retrying at the same cadence and getting
+// rate-limited again right away.
+const RATE_LIMIT_BACKOFF_TICKS = 4;
+let rateLimitSkipTicksRemaining = 0;
+
+/** Exposed for tests only — resets module-level backoff state between test cases. */
+export function __resetRateLimitBackoffForTests(): void {
+  rateLimitSkipTicksRemaining = 0;
+}
+
 TaskManager.defineTask(
   BG_LOCATION_TASK,
   async ({
@@ -45,6 +62,12 @@ TaskManager.defineTask(
     const locations = data?.locations;
     if (!locations?.length) return;
 
+    if (rateLimitSkipTicksRemaining > 0) {
+      rateLimitSkipTicksRemaining -= 1;
+      console.log(`[bg-location] skipping tick — backing off after 429 (${rateLimitSkipTicksRemaining} left)`);
+      return;
+    }
+
     const tripId = await AsyncStorage.getItem(ACTIVE_TRIP_KEY);
     if (!tripId) return; // task should have been stopped — guard
 
@@ -58,6 +81,11 @@ TaskManager.defineTask(
         });
       } catch (err: any) {
         if (err?.response?.status === 401) return; // global handler signs out
+        if (err?.response?.status === 429) {
+          rateLimitSkipTicksRemaining = RATE_LIMIT_BACKOFF_TICKS;
+          console.log(`[bg-location] rate-limited (429) — backing off for ${RATE_LIMIT_BACKOFF_TICKS} ticks`);
+          return; // stop this batch too; no point posting the rest right away
+        }
         console.log('[bg-location] post failed:', err?.message ?? err);
       }
     }
