@@ -171,7 +171,7 @@ export function TripsScreen() {
 
   return (
     <Screen padded background="alt">
-      <Text style={styles.title}>{t('trips.title')}</Text>
+      <ScreenHeader onCreate={handleCreateTrip} colors={colors} />
       <FlatList
         style={styles.list}
         data={trips}
