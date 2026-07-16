@@ -189,6 +189,7 @@ export const th: Resources = {
       off: 'แชร์ตำแหน่ง',
       startFailedTitle: 'เริ่มแชร์ตำแหน่งไม่สำเร็จ',
       stopFailedTitle: 'หยุดแชร์ตำแหน่งไม่สำเร็จ',
+      createTripStartFailedBody: 'สร้างทริปสำเร็จแล้ว แต่เริ่มแชร์ตำแหน่งไม่สำเร็จ กรุณาเปิดทริปแล้วลองกด "แชร์ตำแหน่ง" อีกครั้ง',
     },
     more: 'เพิ่มเติม',
     moreActions: {

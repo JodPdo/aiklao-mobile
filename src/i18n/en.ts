@@ -194,6 +194,7 @@ export const en = {
       off: 'Share location',
       startFailedTitle: 'Could not start sharing location',
       stopFailedTitle: 'Could not stop sharing location',
+      createTripStartFailedBody: 'Your trip was created, but we could not start sharing your location. Open the trip and try "Share location" again.',
     },
     more: 'More',
     moreActions: {

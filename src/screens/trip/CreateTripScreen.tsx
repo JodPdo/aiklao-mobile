@@ -69,6 +69,10 @@ export function CreateTripScreen() {
         await startBackgroundTracking(tripId);
       } catch (bgErr: any) {
         console.log('[create-trip] bg soft-fail:', bgErr?.message ?? bgErr);
+        // Soft-fail: don't block navigation on this, but the user should know their
+        // location isn't being shared rather than finding out only once someone asks
+        // "where are you?" — see trip.sharing.* for the matching toggle-failure alerts.
+        Alert.alert(t('trip.sharing.startFailedTitle'), t('trip.sharing.createTripStartFailedBody'));
       }
 
       navigation.replace('TripDetail', { tripId });
