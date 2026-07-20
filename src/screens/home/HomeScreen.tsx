@@ -1,6 +1,6 @@
 // src/screens/home/HomeScreen.tsx
 import React, { useCallback, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Location from 'expo-location';
@@ -92,62 +92,108 @@ export function HomeScreen() {
   const hasActive = activeTrips.length > 0;
   const showBgPrompt = bgPermStatus === 'undetermined' || bgPermStatus === 'denied';
 
+  // UI-1: content lives inside a ScrollView so any number of active trip cards stays
+  // reachable (previously the cards rendered straight into <Screen padded>, so with 3+
+  // trips the primary actions fell below the fold on a screen that could not scroll).
+  // Screen's own `padded` is turned off and its paddings are re-applied on
+  // contentContainerStyle instead — padding on the ScrollView itself would clip the
+  // scrollable area rather than inset the content. Same shape as SettingsScreen.tsx:134-139
+  // and TripDetailScreen.tsx:329-332. No RefreshControl: Screen provides no pull behavior
+  // and this screen refetches via useFocusEffect, so pull-to-refresh would be new behavior.
   return (
-    <Screen padded background="alt">
-      <Text style={styles.greeting}>
-        {t('home.greeting', { name: user?.displayName ?? '' })}
-      </Text>
-      <Text style={styles.subtitle}>
-        {t('home.subtitle')}
-      </Text>
+    <Screen padded={false} background="alt" style={styles.flex}>
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.greeting}>
+          {t('home.greeting', { name: user?.displayName ?? '' })}
+        </Text>
+        <Text style={styles.subtitle}>
+          {t('home.subtitle')}
+        </Text>
 
-      {hasActive ? (
-        <>
-          {/* One card per active trip — each opens its own TripDetail (Phase 6.2.5) */}
-          {activeTrips.map((trip) => (
-            <ActiveTripCard
-              key={trip.id}
-              tripId={String(trip.id)}
-              name={trip.name}
-              memberCount={trip.memberCount}
-              onPress={() => navigation.navigate('TripDetail', { tripId: String(trip.id) })}
+        {/* UI-1 order (both branches): primary action first, then the permission nudge,
+            then any trip cards — so Start New Trip and the prompt are always above the
+            fold no matter how many trips are active. */}
+        {hasActive ? (
+          <>
+            <Button
+              label={t('home.startNewTrip')}
+              onPress={handleStartNewTrip}
+              fullWidth
             />
-          ))}
-          <Button
-            label={t('home.startNewTrip')}
-            variant="secondary"
-            onPress={handleStartNewTrip}
-            fullWidth
-            style={{ marginTop: spacing.sm }}
-          />
-        </>
-      ) : (
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>{t('home.noActiveTrip')}</Text>
-          <Text style={styles.cardBody}>
-            {t('home.noActiveTripBody')}
-          </Text>
-          <Button
-            label={t('home.startNewTrip')}
-            onPress={handleStartNewTrip}
-            fullWidth
-            style={{ marginTop: spacing.lg }}
-          />
-        </View>
-      )}
 
-      {showBgPrompt && (
-        <BackgroundPermissionPrompt
-          status={bgPermStatus as 'undetermined' | 'denied'}
-          onGranted={handleBgGranted}
-        />
-      )}
+            {showBgPrompt && (
+              <BackgroundPermissionPrompt
+                status={bgPermStatus as 'undetermined' | 'denied'}
+                onGranted={handleBgGranted}
+              />
+            )}
+
+            {/* One card per active trip — each opens its own TripDetail (Phase 6.2.5) */}
+            <View style={styles.cards}>
+              {activeTrips.map((trip) => (
+                <ActiveTripCard
+                  key={trip.id}
+                  tripId={String(trip.id)}
+                  name={trip.name}
+                  memberCount={trip.memberCount}
+                  onPress={() => navigation.navigate('TripDetail', { tripId: String(trip.id) })}
+                />
+              ))}
+            </View>
+          </>
+        ) : (
+          <>
+            {/* Empty state unchanged — the button already sits at the top of the card,
+                and with no cards to push it down there was never a fold problem here. */}
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>{t('home.noActiveTrip')}</Text>
+              <Text style={styles.cardBody}>
+                {t('home.noActiveTripBody')}
+              </Text>
+              <Button
+                label={t('home.startNewTrip')}
+                onPress={handleStartNewTrip}
+                fullWidth
+                style={{ marginTop: spacing.lg }}
+              />
+            </View>
+
+            {showBgPrompt && (
+              <BackgroundPermissionPrompt
+                status={bgPermStatus as 'undetermined' | 'denied'}
+                onGranted={handleBgGranted}
+              />
+            )}
+          </>
+        )}
+      </ScrollView>
     </Screen>
   );
 }
 
 function makeStyles(c: Palette) {
   return StyleSheet.create({
+    // No backgroundColor here — Screen's SafeAreaView already paints `alt`, and setting
+    // one on the inner View/ScrollView would paint over it.
+    flex: {
+      flex: 1,
+    },
+    // Re-applies the paddings Screen.tsx:42-45 would have added via `padded`, which is
+    // switched off so the ScrollView itself can span the full height.
+    scrollContent: {
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.md,
+      paddingBottom: spacing.xl,
+    },
+    // Separates the card list from the action/prompt block above it. ActiveTripCard
+    // carries its own marginBottom, so only the leading gap is needed here.
+    cards: {
+      marginTop: spacing.lg,
+    },
     greeting: {
       ...typography.h2,
       color: c.textPrimary,
