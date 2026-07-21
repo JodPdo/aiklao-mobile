@@ -209,6 +209,7 @@ export const en = {
     },
     action: {
       end: 'End',
+      leave: 'Leave trip',
     },
     caption: {
       autoRefresh: 'Location updates automatically every 60 seconds',
@@ -234,6 +235,14 @@ export const en = {
       message: 'This action cannot be undone.',
       confirm: 'End trip',
       failed: 'Could not end the trip',
+    },
+    leaveTrip: {
+      title: 'Leave this trip?',
+      message: 'You will stop being tracked on this trip. You can only rejoin if invited again.',
+      confirm: 'Leave trip',
+      failed: 'Could not leave the trip',
+      alreadyArchivedTitle: 'This trip has already ended',
+      alreadyArchivedMessage: 'There is nothing to leave — the trip already ended.',
     },
     error: {
       notMember: 'You are not a member of this trip',

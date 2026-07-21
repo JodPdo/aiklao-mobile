@@ -42,6 +42,7 @@ import { TripActionBar } from './components/TripActionBar';
 import { TripMoreActionsSheet } from './components/TripMoreActionsSheet';
 import { TripData } from './tripShared';
 import { useSos, SosCoords } from './useSos';
+import { useLeaveTrip } from './useLeaveTrip';
 
 // ─── Route types ─────────────────────────────────────────────────────────────────
 // Shared TripData/Member types + format/avatar helpers live in ./tripShared.
@@ -180,6 +181,9 @@ export function TripDetailScreen() {
 
   // SOS is shown on ACTIVE trips only — hidden on archived.
   const sosVisible = !isArchived;
+
+  // MB-5: member self-leave controller (leader never gets this — see file header wiring below).
+  const { handleLeaveTrip } = useLeaveTrip({ tripId, isSharing, navigation, reloadTrip: load });
 
   // Build styles from current palette
   const styles = makeStyles(colors);
@@ -374,7 +378,7 @@ export function TripDetailScreen() {
           onToggleSharing={handleToggleSharing}
           bottomInset={Math.max(insets.bottom, spacing.lg)}
           onMembers={() => setShowMembers(true)}
-          onMore={callerMember?.isLeader ? () => setShowMore(true) : undefined}
+          onMore={() => setShowMore(true)}
         />
       )}
 
@@ -387,11 +391,14 @@ export function TripDetailScreen() {
         onClose={() => setShowMembers(false)}
       />
 
-      {/* More sheet — leader-only actions relocated out of the primary bar (B1-1) */}
+      {/* More sheet — infrequent actions relocated out of the primary bar (B1-1); rows are
+          role-gated inside the sheet itself: leader gets Invite/End-trip, a member gets
+          Leave-trip (MB-5) — never both, and never empty for either role. */}
       <TripMoreActionsSheet
         visible={showMore}
-        onInvite={() => { setShowMore(false); setShowInvite(true); }}
-        onEndTrip={() => { setShowMore(false); handleEndTrip(); }}
+        onInvite={callerMember?.isLeader ? () => { setShowMore(false); setShowInvite(true); } : undefined}
+        onEndTrip={callerMember?.isLeader ? () => { setShowMore(false); handleEndTrip(); } : undefined}
+        onLeaveTrip={!callerMember?.isLeader ? () => { setShowMore(false); handleLeaveTrip(); } : undefined}
         onClose={() => setShowMore(false)}
       />
 

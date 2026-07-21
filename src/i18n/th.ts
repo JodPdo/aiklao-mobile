@@ -204,6 +204,7 @@ export const th: Resources = {
     },
     action: {
       end: 'จบ',
+      leave: 'ออกจากทริป',
     },
     caption: {
       autoRefresh: 'ตำแหน่งอัปเดตอัตโนมัติทุก 60 วินาที',
@@ -229,6 +230,14 @@ export const th: Resources = {
       message: 'การกระทำนี้ไม่สามารถยกเลิกได้',
       confirm: 'จบทริป',
       failed: 'ไม่สามารถจบทริปได้',
+    },
+    leaveTrip: {
+      title: 'ออกจากทริปนี้?',
+      message: 'คุณจะหยุดถูกติดตามในทริปนี้ หากต้องการกลับเข้าร่วมอีกครั้งต้องได้รับคำเชิญใหม่',
+      confirm: 'ออกจากทริป',
+      failed: 'ไม่สามารถออกจากทริปได้',
+      alreadyArchivedTitle: 'ทริปนี้จบไปแล้ว',
+      alreadyArchivedMessage: 'ไม่มีอะไรให้ออก เพราะทริปนี้จบไปแล้ว',
     },
     error: {
       notMember: 'คุณไม่ได้เป็นสมาชิกของทริปนี้',

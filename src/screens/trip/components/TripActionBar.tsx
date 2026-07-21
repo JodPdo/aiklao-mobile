@@ -1,6 +1,6 @@
 // src/screens/trip/components/TripActionBar.tsx
-// Sticky bottom action bar (B1-1 IA, 2026-07-15): [แชร์ตำแหน่ง toggle] · [สมาชิก (N)] · [เพิ่มเติม ⋯ leader-only].
-// Invite + End-trip moved into TripMoreActionsSheet (opened via onMore) — infrequent, leader-only
+// Sticky bottom action bar (B1-1 IA, 2026-07-15): [แชร์ตำแหน่ง toggle] · [สมาชิก (N)] · [เพิ่มเติม ⋯].
+// Invite/End-trip/Leave-trip all live in TripMoreActionsSheet (opened via onMore) — infrequent
 // actions no longer compete for primary-row space against the safety-critical share toggle.
 // SOS is deliberately NOT here — it already lives as a floating button over the map
 // (TripMapView.tsx), which satisfies "never behind a menu" better than a bar slot would.
@@ -8,8 +8,8 @@
 // Wiring/guards owned by the screen and passed in:
 //   • share toggle → onToggleSharing (screen owns the actual start/stop + loading state)
 //   • members      → opens the MembersSheet
-//   • เพิ่มเติม    → onMore (omit the prop entirely to hide the button — leader-only for now,
-//                    since a member's sheet would be empty until Leave Trip/Break ship)
+//   • เพิ่มเติม    → onMore — always shown now (MB-5): a leader's sheet has Invite/End-trip,
+//                    a member's has Leave-trip, so it's never empty for either role.
 
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -27,7 +27,7 @@ export interface TripActionBarProps {
   onToggleSharing: () => void;
   bottomInset: number;       // safe-area padding for the bar
   onMembers: () => void;
-  onMore?: () => void;       // omit to hide the button entirely (non-leader, for now)
+  onMore?: () => void;       // optional prop shape kept, but the screen always passes it now (MB-5)
 }
 
 export function TripActionBar({
@@ -64,7 +64,7 @@ export function TripActionBar({
           style={{ ...styles.btn, flex: 2 }}
         />
 
-        {/* More — leader-only for now (see file header); opens TripMoreActionsSheet */}
+        {/* More — opens TripMoreActionsSheet, whose rows vary by the caller's role (see file header) */}
         {onMore != null && (
           <Button
             label={t('trip.more')}

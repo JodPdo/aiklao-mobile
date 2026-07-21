@@ -89,6 +89,43 @@ export async function cancelSos(tripId: string, sosId: string): Promise<{ cancel
   return { cancelledAt: res.data.cancelledAt };
 }
 
+// ─── MB-5 — member self-leave (contract: MB5_LEAVE_TRIP_DESIGN.md, G1-approved) ──
+// Backend package not yet landed — DO NOT wire this against a live server until
+// then; this function is complete and tested against a mocked api client only.
+
+/**
+ * DELETE /api/mobile/trips/:tripId/members/me — a non-leader member leaves the
+ * trip. Throws an Error with `.code` set to 'LEADER_CANNOT_LEAVE' | 'NOT_A_MEMBER'
+ * | 'ALREADY_ARCHIVED' when the response matches one of those documented cases;
+ * any other failure rethrows the raw AxiosError untouched (same convention as
+ * triggerSos's 409/ACTIVE_SOS_EXISTS mapping above).
+ */
+export async function leaveTrip(tripId: string): Promise<void> {
+  try {
+    await api.delete(`/api/mobile/trips/${tripId}/members/me`);
+  } catch (e) {
+    const err = e as AxiosError<{ error?: string }>;
+    const code = err.response?.data?.error;
+    const status = err.response?.status;
+    if (status === 403 && code === 'leader_cannot_leave') {
+      throw typedError('LEADER_CANNOT_LEAVE');
+    }
+    if (status === 404 && code === 'not_a_member') {
+      throw typedError('NOT_A_MEMBER');
+    }
+    if (status === 409 && code === 'already_archived') {
+      throw typedError('ALREADY_ARCHIVED');
+    }
+    throw e;
+  }
+}
+
+function typedError(code: string): Error {
+  const err: any = new Error(code);
+  err.code = code;
+  return err;
+}
+
 // ─── Phase 6.2.5 — trip listing (active trip entry on HomeScreen) ────────────
 
 export interface TripSummary {

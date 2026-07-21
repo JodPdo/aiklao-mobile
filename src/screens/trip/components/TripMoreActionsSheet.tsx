@@ -1,17 +1,17 @@
 // src/screens/trip/components/TripMoreActionsSheet.tsx
-// Overflow sheet for infrequent, leader-only trip actions (B1-1 IA, 2026-07-15).
+// Overflow sheet for infrequent trip actions (B1-1 IA, 2026-07-15).
 // Structurally cloned from MembersSheet.tsx's Modal/backdrop/sheet skeleton — same
 // pattern, different content (a short action list instead of a member list).
 //
-// Leader-only for now: rendered only when TripActionBar's onMore prop is supplied,
-// which the screen only does for the trip leader. A non-leader's version of this
-// sheet would be empty right now (Leave Trip / Break aren't backend-ready yet) —
-// deliberately not shown rather than shipping a dead menu (see SettingsScreen's
-// disabled-chevron rows, UX-11, which this project is already fixing elsewhere).
-//
-// Future rows land here as their tickets ship (Leave Trip / MB-5, Break / 5a, rename,
-// change destination, share-link) — no bar redesign needed, just add a row and, once
-// any of them is member-facing, stop gating the More button to leader-only.
+// Role-gated by which handler props are supplied — each prop is optional, and
+// its row only renders when the prop is provided:
+//   • onInvite / onEndTrip — leader-only (the screen only passes these for the
+//     trip leader; a member gets undefined for both).
+//   • onLeaveTrip — non-leader (member) only, MB-5. The leader is never offered
+//     this — they archive the trip instead (MB5_LEAVE_TRIP_DESIGN.md Q1).
+// This sheet is no longer leader-only overall (was, until MB-5) — TripActionBar's
+// "More" button is now always shown, and this sheet renders whichever rows apply
+// to the caller's own role, so a member's sheet is never empty.
 
 import React from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -23,14 +23,22 @@ import type { Palette } from '@/theme';
 
 export interface TripMoreActionsSheetProps {
   visible: boolean;
-  onInvite: () => void;
-  onEndTrip: () => void;
+  onInvite?: () => void;
+  onEndTrip?: () => void;
+  onLeaveTrip?: () => void;
   onClose: () => void;
 }
 
-export function TripMoreActionsSheet({ visible, onInvite, onEndTrip, onClose }: TripMoreActionsSheetProps) {
+export function TripMoreActionsSheet({
+  visible, onInvite, onEndTrip, onLeaveTrip, onClose,
+}: TripMoreActionsSheetProps) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+
+  const rows: { key: string; label: string; onPress: () => void; danger?: boolean }[] = [];
+  if (onInvite) rows.push({ key: 'invite', label: t('trip.invite'), onPress: onInvite });
+  if (onEndTrip) rows.push({ key: 'end', label: t('trip.action.end'), onPress: onEndTrip, danger: true });
+  if (onLeaveTrip) rows.push({ key: 'leave', label: t('trip.action.leave'), onPress: onLeaveTrip, danger: true });
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -38,25 +46,19 @@ export function TripMoreActionsSheet({ visible, onInvite, onEndTrip, onClose }: 
         <Pressable style={styles.sheet} onPress={() => {}}>
           <Text style={styles.title}>{t('trip.moreActions.title')}</Text>
 
-          <Pressable
-            style={styles.row}
-            onPress={onInvite}
-            hitSlop={8}
-            accessibilityRole="button"
-          >
-            <Text style={styles.rowLabel}>{t('trip.invite')}</Text>
-          </Pressable>
-
-          <View style={styles.divider} />
-
-          <Pressable
-            style={styles.row}
-            onPress={onEndTrip}
-            hitSlop={8}
-            accessibilityRole="button"
-          >
-            <Text style={[styles.rowLabel, styles.rowLabelDanger]}>{t('trip.action.end')}</Text>
-          </Pressable>
+          {rows.map((row, i) => (
+            <React.Fragment key={row.key}>
+              {i > 0 && <View style={styles.divider} />}
+              <Pressable
+                style={styles.row}
+                onPress={row.onPress}
+                hitSlop={8}
+                accessibilityRole="button"
+              >
+                <Text style={[styles.rowLabel, row.danger && styles.rowLabelDanger]}>{row.label}</Text>
+              </Pressable>
+            </React.Fragment>
+          ))}
 
           <Button
             label={t('common.close')}
